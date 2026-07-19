@@ -1,4 +1,4 @@
-/**import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { subscriptionsApi } from '../api/subscription';
 
 /**
@@ -7,10 +7,9 @@ import { subscriptionsApi } from '../api/subscription';
  * After payment, Paystack redirects back to the app's success page.
  *
  * Pass connectionId — the subscription API now expects connectionId (not realmId).
- 
+ */
 export function useCheckout() {
     return useMutation({
         mutationFn: ({ connectionId, planCode }: { connectionId: string, planCode: string }) => subscriptionsApi.checkout({ connectionId, planCode }),
     });
 }
-**/
