@@ -1,6 +1,14 @@
+const getBaseUrl = () => {
+    const envUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (envUrl) {
+        return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
+    }
+    return 'http://localhost:3000/api';
+};
+
 export const config = {
     api: {
-        baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+        baseUrl: getBaseUrl(),
         timeout: 30000,
     },
     auth: {
