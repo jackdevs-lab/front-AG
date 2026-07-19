@@ -1,14 +1,19 @@
 import { api } from '@/lib/api/client';
+import { ApiResponse } from '@/types/api';
 
-export const subscriptionApi = {
-    /**
-     * Initiates a Paystack checkout for a QbConnection.
-     *
-     * IMPORTANT: Pass connectionId (not realmId). The backend uses connectionId
-     * as the primary key stored in Paystack metadata so the webhook can look up
-     * the exact QbConnection to activate on payment success.
-     */
-    checkout(connectionId: string): Promise<{ success: boolean; data: { authorizationUrl: string; accessCode: string; reference: string } }> {
-        return api.post('/subscriptions/checkout', { connectionId });
+export interface CheckoutRequest {
+    connectionId: string;
+    planCode: string;
+}
+
+export interface CheckoutResponseData {
+    authorizationUrl: string;
+    accessCode: string;
+    reference: string;
+}
+
+export const subscriptionsApi = {
+    checkout(data: CheckoutRequest): Promise<ApiResponse<CheckoutResponseData>> {
+        return api.post('/subscriptions/checkout', data);
     }
 };
