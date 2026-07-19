@@ -66,7 +66,7 @@ function BillingPageContent() {
         setCheckoutError(null);
 
         // We leave the hook signature as-is. The backend now defaults to the 10_scans package.
-        checkout(connectionId, {
+        checkout({ connectionId, planCode: "10_scans" }, {
             onSuccess: (data: any) => {
                 const url = data?.data?.authorizationUrl ?? data?.authorizationUrl;
                 if (url) {
