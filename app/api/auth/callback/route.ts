@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { config } from '@/lib/config';
 
 /**
  * QuickBooks OAuth Callback Handler
@@ -36,9 +37,9 @@ export async function GET(request: NextRequest) {
     try {
         // Exchange code for tokens with backend
         // We MUST pass the Bearer token to trigger JIT provisioning in the backend
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/connections/quickbooks/callback`, {
+        const response = await fetch(`${config.api.baseUrl}/connections/quickbooks/callback`, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
