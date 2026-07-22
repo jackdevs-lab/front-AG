@@ -109,32 +109,36 @@ function DashboardContent({ router, error, setError }: any) {
     useDiagnosticStream(selectedConnectionId || null);
 
     const { runAudit, auditError, isTriggeringAudit } = useConnections();
-
     const [isExpectingSync, setIsExpectingSync] = useState(false);
-
-    // ✅ Track what the diagnostics runAt was BEFORE we triggered the audit
     const preTriggerRunAtRef = useRef<string | null>(null);
 
-    // ✅ SPINNER LOGIC: Stay on until diagnostics have a NEW runAt timestamp
     const currentRunAt = latestDiagnostics?.runAt ? String(latestDiagnostics.runAt) : null;
     const hasNewResults = currentRunAt !== null && currentRunAt !== preTriggerRunAtRef.current;
-
     const isAuditing = isTriggeringAudit || (isExpectingSync && !hasNewResults);
 
-    // ✅ Poll the diagnostics endpoint every 5 seconds while waiting
     useEffect(() => {
         if (!isExpectingSync || !selectedConnectionId) return;
 
-        const interval = setInterval(() => {
-            // Force refetch of diagnostics data
+        const interval = setInterval(async () => {
+            try {
+                const { data } = await axios.get(`/api/connections/${selectedConnectionId}/status`);
+
+                if (data?.syncStatus === 'ERROR') {
+                    setError(data.lastSyncMessage || 'The background sync failed. Please try again.');
+                    setIsExpectingSync(false);
+                    return;
+                }
+            } catch (err) {
+                console.error("Failed to poll connection status", err);
+            }
+
             queryClient.invalidateQueries({ queryKey: ['diagnostics', 'latest', selectedConnectionId] });
             queryClient.invalidateQueries({ queryKey: ['diagnostics', 'history', selectedConnectionId] });
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [isExpectingSync, selectedConnectionId, queryClient]);
+    }, [isExpectingSync, selectedConnectionId, queryClient, setError]);
 
-    // ✅ Stop the spinner when new diagnostic results arrive
     useEffect(() => {
         if (isExpectingSync && hasNewResults) {
             const timer = setTimeout(() => {
