@@ -189,7 +189,10 @@ function DashboardContent({ router, error, setError }: any) {
     };
 
     const { trend, previousScore } = calculateTrend(history || []);
-    const isLocked = latestDiagnostics?.locked === true;
+    const isLocked =
+        activeConnection?.subscriptionStatus === 'INACTIVE' ||
+        latestDiagnostics?.locked === true ||
+        (!latestDiagnostics && activeConnection?.subscriptionStatus !== 'ACTIVE');
     const metrics = useDiagnosticMetrics(latestDiagnostics ?? null);
 
     const isLoading = isAuditing || isLoadingLatest || isLoadingHistory;

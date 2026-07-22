@@ -17,7 +17,7 @@ export function useConnections() {
             return response.data as Connection[];
         },
         enabled: isLoaded && isSignedIn,
-        staleTime: 300000,
+        staleTime: 0,
         refetchInterval: (query) => {
             const connections = query.state.data as Connection[] | undefined;
             return connections?.some(c => c.syncStatus === 'SYNCING') ? 5000 : false;
@@ -70,7 +70,7 @@ export function useSuspenseConnections() {
             const response = await connectionsApi.list();
             return response.data as Connection[];
         },
-        staleTime: 300000,
+        staleTime: 0,
     });
 
     return {
