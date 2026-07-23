@@ -32,7 +32,16 @@ export function useConnections() {
     });
 
     const auditMutation = useMutation({
-        mutationFn: (id: string) => connectionsApi.triggerSync(id),
+        mutationFn: async (id: string) => {
+            try {
+                return await connectionsApi.triggerSync(id);
+            } catch (error: any) {
+                if (error?.response?.status === 429 || error?.status === 429) {
+                    throw new Error('Sync is currently on cooldown. Please try again later.');
+                }
+                throw error;
+            }
+        },
         retry: false,
         onSuccess: (data, connectionId) => {
             queryClient.invalidateQueries({ queryKey: ['connections'] });
@@ -93,7 +102,6 @@ export function useConnection(id: string) {
     });
 }
 
-// Update the hook signature to accept the flag
 export function useConnectionStatus(connectionId: string, isSyncExpectedToRun?: boolean) {
     const { isLoaded, isSignedIn } = useAuth();
 
@@ -104,14 +112,37 @@ export function useConnectionStatus(connectionId: string, isSyncExpectedToRun?: 
             return data;
         },
         enabled: !!connectionId && isLoaded && !!isSignedIn,
-        // Update refetchInterval logic: Poll if status is SYNCING OR if frontend expects it to run
         refetchInterval: (query) => {
             const currentStatus = query.state.data?.syncStatus;
-            // Poll if backend status is SYNCING OR if frontend expects sync to start/run soon
             return (currentStatus === 'SYNCING' || isSyncExpectedToRun) ? 3000 : false;
         },
-        // Optional: Add staleTime/cacheTime for better responsiveness
-        staleTime: 1000, // Data is considered fresh for 1 second
-        // Keep cached data for 5 minutes
+        staleTime: 1000,
+    });
+}
+
+export function useConnectionFindings(connectionId: string) {
+    const { isLoaded, isSignedIn } = useAuth();
+
+    return useQuery({
+        queryKey: ['connection-findings', connectionId],
+        queryFn: async () => {
+            try {
+                const response = await api.get(`/connections/${connectionId}/findings`);
+                return {
+                    findings: response.data ?? response,
+                    isLocked: false
+                };
+            } catch (error: any) {
+                if (error?.response?.status === 403 || error?.status === 403) {
+                    return {
+                        findings: null,
+                        isLocked: true
+                    };
+                }
+                throw error;
+            }
+        },
+        enabled: !!connectionId && isLoaded && !!isSignedIn,
+        staleTime: 10000,
     });
 }

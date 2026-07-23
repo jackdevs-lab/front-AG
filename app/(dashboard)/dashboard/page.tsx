@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard';
 import { DiagnosticFindingsSection } from '@/components/dashboard/DiagnosticFindingsSection';
 import { useConnections, useConnectionStatus, useSuspenseConnections } from '@/lib/hooks/useConnections';
-// 👇 CHANGED: Import standard hooks instead of Suspense hooks for diagnostics
 import {
     useLatestDiagnostics,
     useDiagnosticHistory,
@@ -24,7 +23,8 @@ import { SyncStatusCard } from '@/components/dashboard/SyncStatusCard';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import axios from 'axios';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api/client';
 
 export default function DashboardPage() {
     return (
@@ -186,7 +186,6 @@ function DashboardContent({ router, error, setError }: any) {
     const handleRunAudit = () => {
         if (!activeConnection || isOnCooldown) return;
         setError(null);
-        // ✅ Lock in the current runAt BEFORE triggering
         preTriggerRunAtRef.current = latestDiagnostics?.runAt ? String(latestDiagnostics.runAt) : null;
         setIsExpectingSync(true);
         runAudit(activeConnection.id);
@@ -262,15 +261,86 @@ function DashboardContent({ router, error, setError }: any) {
 
             {error && <ErrorBanner error={error} onClose={() => setError(null)} />}
 
-            <DiagnosticFindingsSection
-                isLocked={isLocked}
-                isLoading={isLoading}
-                latestDiagnostics={latestDiagnostics ?? null}
-                selectedConnectionId={selectedConnectionId}
-            />
+            {isLocked ? (
+                <LockedOverlay router={router} selectedConnectionId={selectedConnectionId}>
+                    <DiagnosticFindingsSection
+                        isLocked={isLocked}
+                        isLoading={isLoading}
+                        latestDiagnostics={latestDiagnostics ?? null}
+                        selectedConnectionId={selectedConnectionId}
+                    />
+                </LockedOverlay>
+            ) : (
+                <DiagnosticFindingsSection
+                    isLocked={isLocked}
+                    isLoading={isLoading}
+                    latestDiagnostics={latestDiagnostics ?? null}
+                    selectedConnectionId={selectedConnectionId}
+                />
+            )}
         </div>
     );
 }
+
+function LockedOverlay({ router, selectedConnectionId, children }: { router: any, selectedConnectionId: string | null, children: React.ReactNode }) {
+    // Fetch ungated overview metrics to tease the locked user
+    const { data: overview } = useQuery({
+        queryKey: ['connection-overview', selectedConnectionId],
+        queryFn: async () => {
+            if (!selectedConnectionId) return null;
+            const response = await api.get(`/connections/${selectedConnectionId}/overview`);
+            return response.data;
+        },
+        enabled: !!selectedConnectionId,
+    });
+
+    return (
+        <div className="relative mt-8">
+            <div className="blur-[6px] opacity-40 pointer-events-none select-none transition-all duration-500 max-h-[650px] overflow-hidden">
+                {children}
+            </div>
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6">
+                <div className="bg-white/95 backdrop-blur-xl border border-slate-200/60 p-8 rounded-[32px] shadow-2xl max-w-xl w-full text-center space-y-6">
+                    <div className="mx-auto w-16 h-16 bg-[hsl(199,89%,48%)]/10 text-[hsl(199,89%,48%)] flex items-center justify-center rounded-2xl mb-2">
+                        <Lock className="w-8 h-8" />
+                    </div>
+
+                    <div>
+                        <h3 className="text-2xl font-black text-slate-900 tracking-tight">Unlock Detailed Findings</h3>
+                        <p className="text-sm font-medium text-slate-500 mt-2 leading-relaxed">
+                            Upgrade your plan to view full line-item details, exact transaction IDs, and receive step-by-step resolution guides.
+                        </p>
+                    </div>
+
+                    {overview && (
+                        <div className="grid grid-cols-3 gap-4 py-2">
+                            <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col items-center justify-center">
+                                <span className="text-2xl font-black text-slate-900">{overview.totalIssues || 0}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1 text-center">Issues Found</span>
+                            </div>
+                            <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex flex-col items-center justify-center">
+                                <span className="text-2xl font-black text-rose-600">{overview.criticalIssues || 0}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 mt-1 text-center">Critical</span>
+                            </div>
+                            <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex flex-col items-center justify-center">
+                                <span className="text-2xl font-black text-amber-600">{overview.warningIssues || 0}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 mt-1 text-center">Warnings</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <Button
+                        onClick={() => router.push(`/billing?connectionId=${selectedConnectionId}`)}
+                        className="w-full h-14 bg-[hsl(199,89%,48%)] hover:bg-[hsl(199,89%,38%)] text-white rounded-xl text-sm font-black uppercase tracking-widest transition-all"
+                    >
+                        View Subscription Plans
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function LockedHealthCard({ router, selectedConnectionId }: any) {
     return (
         <div className="relative overflow-hidden bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
