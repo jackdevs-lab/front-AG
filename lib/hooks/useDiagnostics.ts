@@ -14,12 +14,36 @@ export function useLatestDiagnostics(connectionId: string) {
     return useQuery<DiagnosticRunResult | null>({
         queryKey: ['diagnostics', 'latest', connectionId],
         queryFn: async () => {
-            const response = await diagnosticsApi.getLatest(connectionId, { timeout: DIAGNOSTICS_TIMEOUT });
-            return response.data ?? null;
+            try {
+                const response = await diagnosticsApi.getLatest(connectionId, { timeout: DIAGNOSTICS_TIMEOUT });
+                return response.data ?? null;
+            } catch (error: any) {
+                const status = error?.response?.status;
+
+                // Handle locked/subscription states gracefully without breaking the UI
+                if (status === 403 || status === 402) {
+                    return (
+                        error?.response?.data?.data ?? {
+                            locked: true,
+                            issues: [],
+                            checks: []
+                        }
+                    ) as DiagnosticRunResult;
+                }
+
+                throw error;
+            }
         },
         enabled: !!connectionId,
         staleTime: 10000,
-        retry: 1, // Fail faster instead of retrying 3 times
+        retry: (failureCount, error: any) => {
+            const status = error?.response?.status;
+            // Never retry on subscription or permission blocks
+            if (status === 403 || status === 402) {
+                return false;
+            }
+            return failureCount < 1;
+        },
     });
 }
 
