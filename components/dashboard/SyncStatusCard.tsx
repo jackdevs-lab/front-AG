@@ -4,14 +4,14 @@ import React, { useEffect } from 'react';
 import { Clock, ShieldCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 interface Metrics {
-    lastSync: Date;
+    lastSync?: Date | string | null;
 }
 
 interface LatestDiagnostics {
-    runAt: string | Date;
+    runAt?: string | Date | null;
 }
 
 interface Props {
@@ -24,6 +24,14 @@ interface Props {
     cooldownRemaining: number;
 }
 
+// Safe formatting helper to prevent UI crashes
+function safeFormatDate(dateValue: any, formatPattern: string, fallback: string) {
+    if (!dateValue) return fallback;
+    const parsedDate = dateValue instanceof Date ? dateValue : new Date(dateValue);
+    if (!isValid(parsedDate)) return fallback;
+    return format(parsedDate, formatPattern);
+}
+
 export function SyncStatusCard({
     metrics,
     latestDiagnostics,
@@ -33,11 +41,10 @@ export function SyncStatusCard({
     isOnCooldown,
     cooldownRemaining
 }: Props) {
-    // DEBUG: This will prove exactly when the parent component changes isAuditing
     useEffect(() => {
-        console.log('🔄 [SyncStatusCard] isAuditing changed to:', isAuditing);
+        console.log(' [SyncStatusCard] isAuditing changed to:', isAuditing);
         if (!isAuditing) {
-            console.warn('⚠️ [SyncStatusCard] Parent turned off isAuditing! Check the parent component.');
+            console.warn(' [SyncStatusCard] Parent turned off isAuditing! Check the parent component.');
         }
     }, [isAuditing]);
 
@@ -47,6 +54,12 @@ export function SyncStatusCard({
         const seconds = totalSeconds % 60;
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     };
+
+    // Determine raw date target safely
+    const rawDate = metrics?.lastSync ?? latestDiagnostics?.runAt;
+
+    const formattedTime = safeFormatDate(rawDate, 'h:mm a', 'Never');
+    const formattedDate = safeFormatDate(rawDate, 'MMM d, yyyy', 'No data available');
 
     return (
         <div
@@ -60,27 +73,25 @@ export function SyncStatusCard({
                     <div className="p-1.5 rounded-lg bg-slate-50 border border-slate-100">
                         <Clock className="h-3.5 w-3.5 text-slate-500" />
                     </div>
-                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest leading-none">Sync Status</span>
+                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest leading-none">
+                        Sync Status
+                    </span>
                 </div>
             </div>
+
             <div className="flex flex-col gap-1">
                 <span className="text-xl font-black text-slate-900 tracking-tight">
-                    {metrics
-                        ? format(metrics.lastSync, 'h:mm a')
-                        : (latestDiagnostics ? format(new Date(latestDiagnostics.runAt), 'h:mm a') : 'Never')
-                    }
+                    {formattedTime}
                 </span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    {metrics
-                        ? format(metrics.lastSync, 'MMM d, yyyy')
-                        : (latestDiagnostics ? format(new Date(latestDiagnostics.runAt), 'MMM d, yyyy') : 'No data available')
-                    }
+                    {formattedDate}
                 </span>
             </div>
+
             <div className="pt-2 flex items-center gap-2">
                 <Button
                     onClick={() => {
-                        console.log('👆 [SyncStatusCard] Run Audit button clicked!');
+                        console.log(' [SyncStatusCard] Run Audit button clicked!');
                         onRunAudit();
                     }}
                     disabled={isAuditing || isOnCooldown}
@@ -101,6 +112,7 @@ export function SyncStatusCard({
                         </>
                     )}
                 </Button>
+
                 {isOnCooldown && (
                     <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-amber-50/60 border-2 border-amber-200/70 cursor-not-allowed transition-all duration-300">
                         <Clock className="h-3 w-3 text-amber-600 mr-1.5" />
