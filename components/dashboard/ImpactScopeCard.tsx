@@ -1,5 +1,7 @@
+'use client';
+
 import React from 'react';
-import { Users, TrendingDown, AlertTriangle } from 'lucide-react';
+import { Users, TrendingDown, AlertTriangle, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 interface Metrics {
@@ -45,12 +47,11 @@ export function ImpactScopeCard({ metrics, isLoading, error }: Props) {
     return (
         <article
             className={cn(
-                "bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden transition-all duration-200",
+                "bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden transition-all duration-200 flex flex-col justify-between",
                 isLoading && "animate-pulse select-none pointer-events-none",
                 isError && "border-amber-200 bg-amber-50/10"
             )}
             aria-busy={isLoading}
-            aria-live={isError ? "assertive" : "polite"}
             aria-label="Impact scope and exposure summary"
         >
             {/* Header section */}
@@ -73,21 +74,18 @@ export function ImpactScopeCard({ metrics, isLoading, error }: Props) {
                     </span>
                 </div>
 
-            {/* No teaser badge — locked users see no data at all */}
-
-                {isError && (
-                    <span className="text-[11px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded uppercase tracking-wider">
-                        Disrupted
+                {metrics?.isTeaser && (
+                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-100">
+                        <Lock className="h-2.5 w-2.5" />
+                        Preview Mode
                     </span>
                 )}
             </div>
 
-            {/* Entity Count — hidden in locked state */}
+            {/* Entity Count - Always Visible */}
             <div className="flex items-baseline gap-1.5">
                 {isLoading ? (
                     <div className="h-10 w-24 bg-slate-200 rounded-lg my-0.5" />
-                ) : metrics?.isTeaser ? (
-                    <span className="text-4xl font-mono font-black text-slate-200 tracking-tighter">—</span>
                 ) : (
                     <span className={cn(
                         "text-4xl font-mono font-black tracking-tighter tabular-nums",
@@ -101,14 +99,8 @@ export function ImpactScopeCard({ metrics, isLoading, error }: Props) {
                 </span>
             </div>
 
-            {/* Financial Exposure — hidden in locked state */}
-            <div className="pt-2">
-                {metrics?.isTeaser ? (
-                    <div className="border border-slate-100 rounded-xl p-3 text-center space-y-0.5 bg-slate-50/50">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Subscription Required</p>
-                        <p className="text-[10px] text-slate-400 font-medium">Exposure data is locked</p>
-                    </div>
-                ) : (
+            {/* Financial Exposure - Always Visible */}
+            <div className="pt-1">
                 <div className={cn(
                     "border rounded-xl p-3 flex items-center justify-between transition-colors",
                     isError ? "bg-amber-50/30 border-amber-100/70" : "bg-rose-50/50 border-rose-100"
@@ -141,7 +133,6 @@ export function ImpactScopeCard({ metrics, isLoading, error }: Props) {
                         <TrendingDown className="h-5 w-5" />
                     </div>
                 </div>
-                )}
             </div>
         </article>
     );

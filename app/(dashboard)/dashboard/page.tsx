@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard';
 import { DiagnosticFindingsSection } from '@/components/dashboard/DiagnosticFindingsSection';
-import { useConnections, useConnectionStatus, useSuspenseConnections } from '@/lib/hooks/useConnections';
+import { useConnections, useSuspenseConnections } from '@/lib/hooks/useConnections';
 import {
     useLatestDiagnostics,
     useDiagnosticHistory,
@@ -200,10 +200,6 @@ function DashboardContent({ router, error, setError }: any) {
     const metrics = useDiagnosticMetrics(latestDiagnostics ?? null);
     const isLoading = isAuditing || isLoadingLatest || isLoadingHistory;
 
-    // Type bypasses for discriminated union properties
-    const isUnlocked = latestDiagnostics && !latestDiagnostics.locked;
-    const diagnosticsData = latestDiagnostics as any;
-
     return (
         <div className="space-y-8 pb-20 max-w-[1600px] mx-auto">
             {(latestError || historyError) && (
@@ -220,13 +216,14 @@ function DashboardContent({ router, error, setError }: any) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <ErrorBoundary>
+                    {/* HealthScoreCard now uses teaser values directly from metrics */}
                     <HealthScoreCard
                         {...({ isLocked } as any)}
-                        score={isUnlocked ? diagnosticsData.healthScore : 100}
-                        label={isUnlocked ? diagnosticsData.scoreLabel : 'Ready'}
-                        color={isUnlocked ? diagnosticsData.scoreColor : '#94a3b8'}
+                        score={metrics?.healthScore ?? 100}
+                        label={metrics?.scoreLabel ?? 'Ready'}
+                        color={metrics?.scoreColor ?? '#94a3b8'}
                         lastUpdated={latestDiagnostics ? new Date(latestDiagnostics.runAt) : new Date()}
-                        breakdown={isUnlocked ? diagnosticsData.scoreBreakdown : undefined}
+                        breakdown={metrics?.scoreBreakdown}
                         trend={trend as any}
                         previousScore={previousScore}
                     />
@@ -234,7 +231,6 @@ function DashboardContent({ router, error, setError }: any) {
 
                 <ErrorBoundary>
                     <DetectedIssuesCard
-                        {...({ isLocked } as any)}
                         metrics={metrics}
                         isLoading={isLoading}
                         selectedConnectionId={selectedConnectionId}
@@ -243,7 +239,6 @@ function DashboardContent({ router, error, setError }: any) {
 
                 <ErrorBoundary>
                     <ImpactScopeCard
-                        {...({ isLocked } as any)}
                         metrics={metrics}
                         isLoading={isLoading}
                     />
