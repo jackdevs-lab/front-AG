@@ -36,12 +36,19 @@ export function DiagnosticFindingsSection({
 
     const issueCountText = useMemo(() => {
         if (isLocked) {
+            // Unlocked teaser text using exposed metrics on locked payloads
+            const diagAny = latestDiagnostics as any;
+            const metaTotal = diagAny?.meta?.criticalCount !== undefined
+                ? ((diagAny.meta.criticalCount || 0) + (diagAny.meta.warningCount || 0) + (diagAny.meta.infoCount || 0))
+                : (diagAny?.issueCount || 0);
+
+            if (metaTotal > 0) return `${metaTotal} issues detected across all rules`;
             return 'Subscription required to view findings';
         }
 
         const displayCount = Array.isArray(visibleIssues) ? visibleIssues.length : 0;
         return `${displayCount} issues detected across all rules`;
-    }, [isLocked, visibleIssues]);
+    }, [isLocked, visibleIssues, latestDiagnostics]);
 
     const handleTypeSelect = useCallback((type: FilterType) => {
         setFilterType(type);

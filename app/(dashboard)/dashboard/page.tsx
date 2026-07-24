@@ -13,7 +13,7 @@ import {
 } from '@/lib/hooks/useDiagnostics';
 import { useActiveConnection } from '@/lib/contexts/ConnectionContext';
 import { ConnectQuickBooks } from '@/components/connections/ConnectQuickBooks';
-import { AlertCircle, Database, Lock } from 'lucide-react';
+import { AlertCircle, Database } from 'lucide-react';
 import { calculateTrend } from '@/lib/utils/dashboard-helpers';
 import { Button } from '@/components/ui/button';
 import { useDiagnosticMetrics } from '@/lib/hooks/useDiagnosticMetrics';
@@ -23,8 +23,7 @@ import { SyncStatusCard } from '@/components/dashboard/SyncStatusCard';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import axios from 'axios';
-import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function DashboardPage() {
     return (
@@ -192,13 +191,18 @@ function DashboardContent({ router, error, setError }: any) {
     };
 
     const { trend, previousScore } = calculateTrend(history || []);
+
     const isLocked =
         activeConnection?.subscriptionStatus === 'INACTIVE' ||
         latestDiagnostics?.locked === true ||
         (!latestDiagnostics && activeConnection?.subscriptionStatus !== 'ACTIVE');
-    const metrics = useDiagnosticMetrics(latestDiagnostics ?? null);
 
+    const metrics = useDiagnosticMetrics(latestDiagnostics ?? null);
     const isLoading = isAuditing || isLoadingLatest || isLoadingHistory;
+
+    // Type bypasses for discriminated union properties
+    const isUnlocked = latestDiagnostics && !latestDiagnostics.locked;
+    const diagnosticsData = latestDiagnostics as any;
 
     return (
         <div className="space-y-8 pb-20 max-w-[1600px] mx-auto">
@@ -216,23 +220,21 @@ function DashboardContent({ router, error, setError }: any) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <ErrorBoundary>
-                    {isLocked ? (
-                        <LockedHealthCard router={router} selectedConnectionId={selectedConnectionId} />
-                    ) : (
-                        <HealthScoreCard
-                            score={latestDiagnostics && !latestDiagnostics.locked ? latestDiagnostics.healthScore : 100}
-                            label={latestDiagnostics && !latestDiagnostics.locked ? latestDiagnostics.scoreLabel : 'Ready'}
-                            color={latestDiagnostics && !latestDiagnostics.locked ? latestDiagnostics.scoreColor : '#94a3b8'}
-                            lastUpdated={latestDiagnostics ? new Date(latestDiagnostics.runAt) : new Date()}
-                            breakdown={latestDiagnostics && !latestDiagnostics.locked ? latestDiagnostics.scoreBreakdown : undefined}
-                            trend={trend as any}
-                            previousScore={previousScore}
-                        />
-                    )}
+                    <HealthScoreCard
+                        {...({ isLocked } as any)}
+                        score={isUnlocked ? diagnosticsData.healthScore : 100}
+                        label={isUnlocked ? diagnosticsData.scoreLabel : 'Ready'}
+                        color={isUnlocked ? diagnosticsData.scoreColor : '#94a3b8'}
+                        lastUpdated={latestDiagnostics ? new Date(latestDiagnostics.runAt) : new Date()}
+                        breakdown={isUnlocked ? diagnosticsData.scoreBreakdown : undefined}
+                        trend={trend as any}
+                        previousScore={previousScore}
+                    />
                 </ErrorBoundary>
 
                 <ErrorBoundary>
                     <DetectedIssuesCard
+                        {...({ isLocked } as any)}
                         metrics={metrics}
                         isLoading={isLoading}
                         selectedConnectionId={selectedConnectionId}
@@ -241,6 +243,7 @@ function DashboardContent({ router, error, setError }: any) {
 
                 <ErrorBoundary>
                     <ImpactScopeCard
+                        {...({ isLocked } as any)}
                         metrics={metrics}
                         isLoading={isLoading}
                     />
@@ -248,6 +251,7 @@ function DashboardContent({ router, error, setError }: any) {
 
                 <ErrorBoundary>
                     <SyncStatusCard
+                        {...({ isLocked } as any)}
                         metrics={metrics}
                         latestDiagnostics={latestDiagnostics ?? null}
                         isLoading={isLoading}
@@ -261,119 +265,12 @@ function DashboardContent({ router, error, setError }: any) {
 
             {error && <ErrorBanner error={error} onClose={() => setError(null)} />}
 
-            {isLocked ? (
-                <LockedOverlay router={router} selectedConnectionId={selectedConnectionId}>
-                    <DiagnosticFindingsSection
-                        isLocked={isLocked}
-                        isLoading={isLoading}
-                        latestDiagnostics={latestDiagnostics ?? null}
-                        selectedConnectionId={selectedConnectionId}
-                    />
-                </LockedOverlay>
-            ) : (
-                <DiagnosticFindingsSection
-                    isLocked={isLocked}
-                    isLoading={isLoading}
-                    latestDiagnostics={latestDiagnostics ?? null}
-                    selectedConnectionId={selectedConnectionId}
-                />
-            )}
-        </div>
-    );
-}
-
-function LockedOverlay({ router, selectedConnectionId, children }: { router: any, selectedConnectionId: string | null, children: React.ReactNode }) {
-    // Fetch ungated overview metrics to tease the locked user
-    const { data: overview } = useQuery({
-        queryKey: ['connection-overview', selectedConnectionId],
-        queryFn: async () => {
-            if (!selectedConnectionId) return null;
-            const response = await api.get(`/connections/${selectedConnectionId}/overview`);
-            return response.data;
-        },
-        enabled: !!selectedConnectionId,
-    });
-
-    return (
-        <div className="relative mt-8">
-            <div className="blur-[6px] opacity-40 pointer-events-none select-none transition-all duration-500 max-h-[650px] overflow-hidden">
-                {children}
-            </div>
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6">
-                <div className="bg-white/95 backdrop-blur-xl border border-slate-200/60 p-8 rounded-[32px] shadow-2xl max-w-xl w-full text-center space-y-6">
-                    <div className="mx-auto w-16 h-16 bg-[hsl(199,89%,48%)]/10 text-[hsl(199,89%,48%)] flex items-center justify-center rounded-2xl mb-2">
-                        <Lock className="w-8 h-8" />
-                    </div>
-
-                    <div>
-                        <h3 className="text-2xl font-black text-slate-900 tracking-tight">Unlock Detailed Findings</h3>
-                        <p className="text-sm font-medium text-slate-500 mt-2 leading-relaxed">
-                            Upgrade your plan to view full line-item details, exact transaction IDs, and receive step-by-step resolution guides.
-                        </p>
-                    </div>
-
-                    {overview && (
-                        <div className="grid grid-cols-3 gap-4 py-2">
-                            <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col items-center justify-center">
-                                <span className="text-2xl font-black text-slate-900">{overview.totalIssues || 0}</span>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1 text-center">Issues Found</span>
-                            </div>
-                            <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex flex-col items-center justify-center">
-                                <span className="text-2xl font-black text-rose-600">{overview.criticalIssues || 0}</span>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 mt-1 text-center">Critical</span>
-                            </div>
-                            <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex flex-col items-center justify-center">
-                                <span className="text-2xl font-black text-amber-600">{overview.warningIssues || 0}</span>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 mt-1 text-center">Warnings</span>
-                            </div>
-                        </div>
-                    )}
-
-                    <Button
-                        onClick={() => router.push(`/billing?connectionId=${selectedConnectionId}`)}
-                        className="w-full h-14 bg-[hsl(199,89%,48%)] hover:bg-[hsl(199,89%,38%)] text-white rounded-xl text-sm font-black uppercase tracking-widest transition-all"
-                    >
-                        View Subscription Plans
-                    </Button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function LockedHealthCard({ router, selectedConnectionId }: any) {
-    return (
-        <div className="relative overflow-hidden bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-slate-50 border border-slate-100">
-                        <Lock className="h-3.5 w-3.5 text-slate-400" />
-                    </div>
-                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest leading-none">Health Score</span>
-                </div>
-                <span className="text-[10px] font-black bg-slate-100 text-slate-400 px-2.5 py-0.5 rounded-full uppercase tracking-tight">Locked</span>
-            </div>
-            <div className="flex items-baseline gap-1.5 mb-4">
-                <span className="text-5xl font-mono font-black text-slate-200 tracking-tighter">—</span>
-                <span className="text-sm font-mono font-bold text-slate-200">/100</span>
-            </div>
-            <div className="h-2 w-full bg-slate-100 rounded-full mb-4" />
-            <div className="grid grid-cols-3 gap-2">
-                {['Passed', 'Warning', 'Critical'].map(label => (
-                    <div key={label} className="flex flex-col p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-tighter mb-1">{label}</span>
-                        <span className="text-sm font-mono font-black text-slate-200">—</span>
-                    </div>
-                ))}
-            </div>
-            {selectedConnectionId && (
-                <button
-                    onClick={() => router.push(`/billing?connectionId=${encodeURIComponent(selectedConnectionId)}`)}
-                    className="mt-4 w-full text-[10px] font-black uppercase tracking-widest text-[hsl(199,89%,48%)] hover:text-[hsl(199,89%,38%)] transition-colors text-center"
-                >
-                    Subscribe to see your score →
-                </button>
-            )}
+            <DiagnosticFindingsSection
+                isLocked={isLocked}
+                isLoading={isLoading}
+                latestDiagnostics={latestDiagnostics ?? null}
+                selectedConnectionId={selectedConnectionId}
+            />
         </div>
     );
 }

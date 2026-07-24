@@ -9,7 +9,12 @@ export interface BaseDiagnosticMetrics {
     totalIssues: number;
     totalEntities: number;
     totalExposure: string;
-    lastSync: Date; 
+    lastSync: Date;
+    // Newly exposed KPIs so components don't have to parse locked vs unlocked runs
+    healthScore: number;
+    scoreLabel: string;
+    scoreColor: string;
+    scoreBreakdown?: any;
 }
 
 export interface TeaserMetrics extends BaseDiagnosticMetrics {
@@ -34,7 +39,7 @@ const formatUSD = (value: number): string => {
 const safelyParseDate = (dateVal?: string | Date | null): Date => {
     if (!dateVal) return new Date();
     if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? new Date() : dateVal;
-    
+
     const parsed = new Date(dateVal);
     return isNaN(parsed.getTime()) ? new Date() : parsed;
 };
@@ -50,13 +55,21 @@ export function useDiagnosticMetrics(latestDiagnostics: DiagnosticRunResult | nu
     return useMemo(() => {
         if (!latestDiagnostics) return null;
 
+        // Bypassing strict types on the raw payload to safely extract conditionally present properties
+        const diagAny = latestDiagnostics as any;
+        const meta = diagAny.meta ?? {};
+
         const lastSync = safelyParseDate(latestDiagnostics.runAt);
-        const { totalExposure: summaryExposure } = parseMarkdownFindings(latestDiagnostics.message || '');
+        const { totalExposure: summaryExposure } = parseMarkdownFindings(diagAny.message || '');
         const fallbackExposure = summaryExposure || '$0.00';
 
+        // Extract teaser values whether they are top-level or tucked inside the meta object
+        const healthScore = diagAny.healthScore ?? meta.healthScore ?? 100;
+        const scoreLabel = diagAny.scoreLabel ?? meta.scoreLabel ?? (latestDiagnostics.locked ? 'Locked' : 'Ready');
+        const scoreColor = diagAny.scoreColor ?? meta.scoreColor ?? '#94a3b8';
+        const scoreBreakdown = diagAny.scoreBreakdown ?? meta.scoreBreakdown;
+
         if (latestDiagnostics.locked) {
-            const meta = latestDiagnostics.meta ?? {};
-            
             return {
                 critical: meta.criticalCount ?? 0,
                 warning: meta.warningCount ?? 0,
@@ -65,6 +78,10 @@ export function useDiagnosticMetrics(latestDiagnostics: DiagnosticRunResult | nu
                 totalEntities: meta.entitiesAffected ?? 0,
                 totalExposure: meta.totalExposure || fallbackExposure,
                 lastSync,
+                healthScore,
+                scoreLabel,
+                scoreColor,
+                scoreBreakdown,
                 isTeaser: true,
             };
         }
@@ -76,8 +93,8 @@ export function useDiagnosticMetrics(latestDiagnostics: DiagnosticRunResult | nu
         let calculatedExposureSum = 0;
 
         const seenRuleIds = new Set<string>();
-        const issuesList = latestDiagnostics.issues ?? [];
-        
+        const issuesList = diagAny.issues ?? [];
+
         const requiresDynamicExposure = !summaryExposure && issuesList.length > 0;
 
         for (const issue of issuesList) {
@@ -91,14 +108,14 @@ export function useDiagnosticMetrics(latestDiagnostics: DiagnosticRunResult | nu
 
             if (requiresDynamicExposure && issue.ruleId && !seenRuleIds.has(issue.ruleId)) {
                 seenRuleIds.add(issue.ruleId);
-                
+
                 const { totalExposure: issueExp } = parseMarkdownFindings(issue.message || '');
                 calculatedExposureSum += extractNumericExposure(issueExp);
             }
         }
 
-        let finalExposure = latestDiagnostics.totalExposure || summaryExposure;
-        
+        let finalExposure = diagAny.totalExposure || summaryExposure;
+
         if (!finalExposure && requiresDynamicExposure && calculatedExposureSum > 0) {
             finalExposure = formatUSD(calculatedExposureSum);
         }
@@ -107,10 +124,14 @@ export function useDiagnosticMetrics(latestDiagnostics: DiagnosticRunResult | nu
             critical,
             warning,
             info,
-            totalIssues: latestDiagnostics.issueCount ?? issuesList.length,
-            totalEntities: latestDiagnostics.totalEntities ?? calculatedEntities,
+            totalIssues: diagAny.issueCount ?? issuesList.length,
+            totalEntities: diagAny.totalEntities ?? calculatedEntities,
             totalExposure: finalExposure || '$0.00',
             lastSync,
+            healthScore,
+            scoreLabel,
+            scoreColor,
+            scoreBreakdown,
             isTeaser: false,
         };
     }, [latestDiagnostics]);

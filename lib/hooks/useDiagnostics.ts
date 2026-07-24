@@ -80,11 +80,23 @@ export function useDiagnosticStream(connectionId: string | null) {
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'run_completed') {
+                        // Invalidate both diagnostics and connection caches simultaneously.
+                        // React Query batches these synchronously, preventing UI flicker 
+                        // where diagnostics load but subscription status hasn't updated yet.
                         queryClient.invalidateQueries({
                             queryKey: ['diagnostics', 'latest', connectionId]
                         });
                         queryClient.invalidateQueries({
                             queryKey: ['diagnostics', 'history', connectionId]
+                        });
+                        queryClient.invalidateQueries({
+                            queryKey: ['connections']
+                        });
+                        queryClient.invalidateQueries({
+                            queryKey: ['connection', connectionId]
+                        });
+                        queryClient.invalidateQueries({
+                            queryKey: ['connection-status', connectionId]
                         });
                     }
                 } catch (err) {
@@ -135,14 +147,11 @@ export function useSuspenseDiagnosticHistory(connectionId: string, limit = 30) {
 export function useInvalidateAfterPayment() {
     const queryClient = useQueryClient();
     return (connectionId: string) => {
-        queryClient.invalidateQueries({
-            queryKey: ['diagnostics', 'latest', connectionId]
-        });
-        queryClient.invalidateQueries({
-            queryKey: ['diagnostics', 'history', connectionId]
-        });
-        queryClient.invalidateQueries({
-            queryKey: ['connections']
-        });
+        // Apply the exact same synced invalidations post-payment
+        queryClient.invalidateQueries({ queryKey: ['diagnostics', 'latest', connectionId] });
+        queryClient.invalidateQueries({ queryKey: ['diagnostics', 'history', connectionId] });
+        queryClient.invalidateQueries({ queryKey: ['connections'] });
+        queryClient.invalidateQueries({ queryKey: ['connection', connectionId] });
+        queryClient.invalidateQueries({ queryKey: ['connection-status', connectionId] });
     };
 }

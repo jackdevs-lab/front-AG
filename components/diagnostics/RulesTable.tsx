@@ -79,7 +79,7 @@ function LockedRulesOverlay({ connectionId }: { connectionId: string }) {
                                         <div className={cn(
                                             "w-1 h-8 rounded-full",
                                             row.status === 'FAILED' ? 'bg-red-400' :
-                                            row.status === 'WARNING' ? 'bg-amber-400' : 'bg-emerald-400'
+                                                row.status === 'WARNING' ? 'bg-amber-400' : 'bg-emerald-400'
                                         )} />
                                         <div className="flex flex-col gap-1">
                                             <div className="h-3 w-40 rounded bg-slate-200 animate-pulse" />
@@ -91,8 +91,8 @@ function LockedRulesOverlay({ connectionId }: { connectionId: string }) {
                                     <div className={cn(
                                         "inline-flex px-2 py-0.5 rounded border text-[9px] font-black uppercase tracking-tight",
                                         row.status === 'FAILED' ? 'bg-red-50 text-red-700 border-red-100' :
-                                        row.status === 'WARNING' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                                        'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                            row.status === 'WARNING' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                                'bg-emerald-50 text-emerald-700 border-emerald-100'
                                     )}>
                                         {row.status === 'FAILED' ? 'Critical' : row.status === 'WARNING' ? 'Warning' : 'Passed'}
                                     </div>
@@ -177,7 +177,7 @@ export function RulesTable(props: Props) {
     if (isLocked(props)) {
         return (
             <div
-                className="bg-white border border-slate-100 rounded-xl overflow-hidden"
+                className="bg-white border border-slate-100 rounded-xl overflow-hidden relative"
                 role="region"
                 aria-label="Locked diagnostic audit rules"
             >
@@ -185,7 +185,7 @@ export function RulesTable(props: Props) {
                     <div className="flex items-center gap-2">
                         <Lock className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
                         <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">
-                            Audit Rules — Subscription Required
+                            Audit Rules
                         </span>
                     </div>
                     {props.runAt && (
@@ -194,6 +194,10 @@ export function RulesTable(props: Props) {
                         </span>
                     )}
                 </div>
+                {/* 
+                  LockedRulesOverlay (which holds the blurred table and backdrop block) 
+                  renders strictly over the detailed row data area, keeping structure intact 
+                */}
                 <LockedRulesOverlay connectionId={props.connectionId} />
             </div>
         );

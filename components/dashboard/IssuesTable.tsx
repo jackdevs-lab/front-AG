@@ -4,13 +4,13 @@ import React, { useState } from 'react';
 import { Issue, Severity, DiagnosticEntity } from '@/types/diagnostic';
 import { AuditDrawer } from '@/components/diagnostics/AuditDrawer';
 import { SubscriptionButton } from '@/components/billing/SubscriptionButton';
-import { 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableHead, 
-    TableHeader, 
-    TableRow 
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, ChevronRight, Info, ShieldAlert, FileSearch, Lock, ShieldCheck } from 'lucide-react';
@@ -18,20 +18,59 @@ import { cn } from '@/lib/utils/cn';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LockedIssuesOverlay
-//
-// Renders when subscriptionStatus !== 'ACTIVE'. Shows a clean gated state —
-// no placeholder rows, no mock data, no blurred numbers. The user sees only
-// a lock prompt so no information is implied before they subscribe.
 // ─────────────────────────────────────────────────────────────────────────────
+
+const PLACEHOLDER_ISSUES = [
+    { rule: 'Duplicate Invoices', severity: 'CRITICAL', entities: 14 },
+    { rule: 'Unreconciled Transactions', severity: 'CRITICAL', entities: 42 },
+    { rule: 'Orphaned Bill Payments', severity: 'WARNING', entities: 3 },
+    { rule: 'Vendor Duplicates', severity: 'WARNING', entities: 8 },
+];
 
 function LockedIssuesOverlay({ connectionId }: { connectionId: string }) {
     return (
         <div
-            className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm"
+            className="relative bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm"
             role="region"
             aria-label="Issue results locked — subscription required"
         >
-            <div className="flex flex-col items-center justify-center gap-6 py-20 px-8 text-center">
+            {/* Blurred placeholder table to tease structure */}
+            <div className="select-none pointer-events-none" aria-hidden="true">
+                <Table>
+                    <TableHeader className="bg-slate-50/50">
+                        <TableRow className="border-slate-100">
+                            <TableHead className="w-[400px] text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Diagnostic Rule</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Severity</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Affected Entities</TableHead>
+                            <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Action</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {PLACEHOLDER_ISSUES.map((row, i) => (
+                            <TableRow key={i} className="border-slate-100">
+                                <TableCell className="py-5">
+                                    <div className="flex flex-col gap-2">
+                                        <div className="h-3 w-48 rounded bg-slate-200 animate-pulse" />
+                                        <div className="h-2 w-24 rounded bg-slate-100 animate-pulse" />
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="h-4 w-20 rounded bg-slate-100 animate-pulse" />
+                                </TableCell>
+                                <TableCell>
+                                    <div className="h-5 w-8 rounded bg-slate-100 animate-pulse" />
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <div className="inline-flex h-8 w-8 rounded-full bg-slate-100 animate-pulse" />
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+
+            {/* Absolute Lock Overlay */}
+            <div className="absolute inset-0 backdrop-blur-[3px] bg-white/70 flex flex-col items-center justify-center gap-6 z-10">
                 <div className="relative">
                     <div className="absolute inset-0 bg-slate-900/10 rounded-2xl blur-xl" />
                     <div className="relative p-4 bg-slate-900 rounded-2xl shadow-2xl">
@@ -39,7 +78,7 @@ function LockedIssuesOverlay({ connectionId }: { connectionId: string }) {
                     </div>
                 </div>
 
-                <div className="space-y-1.5 max-w-sm">
+                <div className="space-y-1.5 max-w-sm text-center">
                     <p className="text-lg font-black text-slate-900 tracking-tight">
                         Issues Locked
                     </p>
@@ -64,7 +103,6 @@ function LockedIssuesOverlay({ connectionId }: { connectionId: string }) {
     );
 }
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // IssuesTable — main export
 // ─────────────────────────────────────────────────────────────────────────────
@@ -72,7 +110,6 @@ function LockedIssuesOverlay({ connectionId }: { connectionId: string }) {
 interface IssuesTableProps {
     issues: Issue[];
     filterType: string | null;
-    /** If true, render locked overlay instead of real data */
     locked?: false;
 }
 
@@ -85,12 +122,10 @@ interface LockedIssuesTableProps {
 type Props = IssuesTableProps | LockedIssuesTableProps;
 
 export function IssuesTable(props: Props) {
-    // ── Locked state ─────────────────────────────────────────────────────
     if (props.locked === true) {
         return <LockedIssuesOverlay connectionId={props.connectionId} />;
     }
 
-    // ── Unlocked state ───────────────────────────────────────────────────
     const { issues, filterType } = props;
     return <UnlockedIssuesTable issues={issues} filterType={filterType} />;
 }
@@ -103,8 +138,8 @@ function UnlockedIssuesTable({ issues, filterType }: { issues: Issue[]; filterTy
 
     const filteredIssues = React.useMemo(() => {
         if (!filterType) return issues;
-        return issues.filter(issue => 
-            Array.isArray(issue.entities) && 
+        return issues.filter(issue =>
+            Array.isArray(issue.entities) &&
             issue.entities.some((e: DiagnosticEntity) => e.type === filterType)
         );
     }, [issues, filterType]);
@@ -174,7 +209,7 @@ function UnlockedIssuesTable({ issues, filterType }: { issues: Issue[]; filterTy
                     </TableHeader>
                     <TableBody>
                         {groupedIssues.map(([ruleId, group]) => (
-                            <TableRow 
+                            <TableRow
                                 key={ruleId}
                                 className="group cursor-pointer hover:bg-slate-50/50 transition-colors border-slate-100"
                                 onClick={() => setSelectedIssue(group.latestIssue)}
@@ -190,12 +225,12 @@ function UnlockedIssuesTable({ issues, filterType }: { issues: Issue[]; filterTy
                                         {group.severity === 'CRITICAL'
                                             ? <ShieldAlert className="h-4 w-4 text-rose-500" />
                                             : group.severity === 'WARNING'
-                                            ? <AlertCircle className="h-4 w-4 text-amber-500" />
-                                            : <Info className="h-4 w-4 text-blue-500" />}
+                                                ? <AlertCircle className="h-4 w-4 text-amber-500" />
+                                                : <Info className="h-4 w-4 text-blue-500" />}
                                         <span className={cn(
                                             "text-[10px] font-black uppercase tracking-widest",
                                             group.severity === 'CRITICAL' ? "text-rose-600" :
-                                            group.severity === 'WARNING' ? "text-amber-600" : "text-blue-600"
+                                                group.severity === 'WARNING' ? "text-amber-600" : "text-blue-600"
                                         )}>
                                             {group.severity}
                                         </span>
