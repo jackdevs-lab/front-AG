@@ -81,7 +81,7 @@ function NoConnectionsView({ onConnected }: { onConnected: () => void }) {
             <div className="text-center space-y-3">
                 <h2 className="text-3xl font-black tracking-tight text-slate-900">Connect to Get Started</h2>
                 <p className="text-sm text-slate-500 max-w-sm mx-auto font-medium leading-relaxed">
-                    Link your QuickBooks Online account to begin real-time ledger health monitoring and risk detection.
+                    Link your QuickBooks Online account to begin on demand  ledger health monitoring and risk detection.
                 </p>
             </div>
             <ConnectQuickBooks onConnected={onConnected} />

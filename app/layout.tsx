@@ -6,7 +6,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-    title: 'QuickBooks Health Monitor',
+    title: 'Audit Gen',
     description: 'Monitor and improve your QuickBooks bookkeeping health',
 };
 

@@ -45,7 +45,7 @@ function LoginPageContent() {
                         <span className="text-white font-bold text-xl">QH</span>
                     </div>
                     <h2 className="mt-4 text-2xl font-bold text-gray-900">
-                        QuickBooks Health Monitor
+                        Audit Gen
                     </h2>
                     <p className="mt-2 text-gray-600">Sign in to your account</p>
                 </div>

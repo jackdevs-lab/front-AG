@@ -36,11 +36,11 @@ const FEATURES = [
     { icon: Users, text: 'Affected entity counts per rule' },
     { icon: ShieldCheck, text: 'Remediation action plans per issue' },
     { icon: RefreshCw, text: 'Unlimited on-demand audit runs' }, // CHANGED: Emphasize unlimited access
-    { icon: Bell, text: 'Real-time health score monitoring' },
-    { icon: FileText, text: 'Exportable audit reports (PDF/CSV)' },
-    { icon: Clock, text: 'Historical run comparison (30 days)' },
+    //{ icon: Bell, text: 'Real-time health score monitoring' },
+    { icon: FileText, text: 'Direct Links to Affected Entities to quickbooks' },
+    //{ icon: Clock, text: 'Historical run comparison (30 days)' },
     { icon: Globe, text: 'Multi-company connection support' },
-    { icon: Zap, text: 'Instant unlock — no setup, cancel anytime' },
+    //{ icon: Zap, text: 'Instant unlock — no setup, cancel anytime' },
 ];
 
 const TRUST_SIGNALS = [
@@ -59,7 +59,7 @@ function BillingPageContent() {
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
     useEffect(() => {
-        document.title = 'Subscribe — QB Health Monitor | $29/mo';
+        document.title = 'Subscribe — Audit Gen  | $29/mo';
     }, []);
 
     const handleSubscribe = () => {
@@ -147,7 +147,7 @@ function BillingPageContent() {
                         {/* Header badge */}
                         <div className="inline-flex items-center gap-2 bg-[hsl(199,89%,48%)]/10 text-[hsl(199,89%,40%)] border border-[hsl(199,89%,48%)]/20 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">
                             <Star className="h-3 w-3" />
-                            QB Health Pro Monthly
+                            Audit Gen Pro Monthly
                         </div>
 
                         {/* Price block */}

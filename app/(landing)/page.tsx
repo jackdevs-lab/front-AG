@@ -1,11 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
-import { 
-    CheckCircle2, 
-    ArrowRight, 
-    BarChart3, 
-    ShieldCheck, 
-    Zap, 
+import {
+    CheckCircle2,
+    ArrowRight,
+    BarChart3,
+    ShieldCheck,
+    Zap,
     Database,
     Activity,
     Search
@@ -20,9 +20,9 @@ export default function LandingPage() {
             <header className="px-4 lg:px-6 h-16 flex items-center border-b border-slate-100 sticky top-0 bg-white/80 backdrop-blur-md z-50">
                 <Link className="flex items-center justify-center" href="/">
                     <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center mr-2">
-                        <span className="text-primary-foreground font-bold text-sm">QH</span>
+                        <span className="text-primary-foreground font-bold text-sm">AG</span>
                     </div>
-                    <span className="font-black text-xl tracking-tight text-slate-900">QB Health</span>
+                    <span className="font-black text-xl tracking-tight text-slate-900">Audit Gen</span>
                 </Link>
                 <nav className="ml-auto flex gap-4 sm:gap-6">
                     <Link className="text-sm font-bold text-slate-600 hover:text-primary transition-colors" href="#features">
@@ -68,12 +68,6 @@ export default function LandingPage() {
                                     </Button>
                                 </div>
                                 <div className="flex items-center gap-4 text-sm text-slate-400 font-medium">
-                                    <div className="flex items-center gap-1">
-                                        <CheckCircle2 className="h-4 w-4 text-emerald-500" /> No credit card required
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Intuit Certified Partner
-                                    </div>
                                 </div>
                             </div>
                             {/* Visual Preview */}
@@ -136,16 +130,16 @@ export default function LandingPage() {
                                 <div className="p-3 bg-white rounded-xl shadow-sm">
                                     <Zap className="h-6 w-6 text-primary" />
                                 </div>
-                                <h3 className="text-xl font-bold">Auto-Sync</h3>
+                                <h3 className="text-xl font-bold">Sync On Demand</h3>
                                 <p className="text-slate-500 font-medium">
-                                    We pull your latest transactions directly from QuickBooks Online every hour.
+                                    We pull your latest transactions directly from QuickBooks Online on every sync.
                                 </p>
                             </div>
                             <div className="flex flex-col items-center space-y-4 p-6 rounded-2xl bg-slate-50 border border-slate-100 hover:shadow-lg transition-all text-center">
                                 <div className="p-3 bg-white rounded-xl shadow-sm">
                                     <Search className="h-6 w-6 text-primary" />
                                 </div>
-                                <h3 className="text-xl font-bold">50+ Rules</h3>
+                                <h3 className="text-xl font-bold">20+ Rules</h3>
                                 <p className="text-slate-500 font-medium">
                                     From unlinked payments to abnormal balances, we catch what human eyes miss.
                                 </p>
@@ -205,7 +199,7 @@ export default function LandingPage() {
             {/* Footer */}
             <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t border-slate-100">
                 <p className="text-xs text-slate-400 font-medium">
-                    © 2026 QuickBooks Health Monitor. All rights reserved.
+                    © 2026 Audit Gen . All rights reserved.
                 </p>
                 <nav className="sm:ml-auto flex gap-4 sm:gap-6">
                     <Link className="text-xs hover:underline underline-offset-4 text-slate-400 font-medium" href="#">

@@ -70,8 +70,8 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
                 <CardContent className="space-y-6">
                     <div className="grid gap-3">
                         {[
-                            { icon: <RefreshCw className="h-4 w-4 text-[#2CA01C]" />, text: "Automated Data Sync", desc: "Always up-to-date financials" },
-                            { icon: <RefreshCw className="h-4 w-4 text-blue-500" />, text: "AI Diagnostics", desc: "Find errors before they happen" },
+                            { icon: <RefreshCw className="h-4 w-4 text-[#2CA01C]" />, text: "On Demand Data Sync", desc: "Always up-to-date financials" },
+                            { icon: <RefreshCw className="h-4 w-4 text-blue-500" />, text: "20+ Rule Diagnostics", desc: "Find errors before they happen" },
                             { icon: <RefreshCw className="h-4 w-4 text-orange-500" />, text: "Health Scoring", desc: "Track your fiscal fitness daily" }
                         ].map((item, i) => (
                             <div key={i} className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100 group/item">
@@ -110,7 +110,7 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
                         </Button>
 
                         <p className="text-[10px] items-center text-gray-400 text-center px-4 leading-relaxed">
-                            🔒 Secured with industry-standard encryption. By connecting, you agree to our
+                            Secured with industry-standard encryption. By connecting, you agree to our
                             <span className="text-[#2CA01C] cursor-pointer hover:underline ml-1">Data Authorization Policy</span>.
                         </p>
                     </div>
