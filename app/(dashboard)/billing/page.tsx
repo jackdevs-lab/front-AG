@@ -29,12 +29,13 @@ import { cn } from '@/lib/utils/cn';
 // by the default export. This prevents the "Missing Suspense boundary" build error.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Updated Features List for Subscription Model
 const FEATURES = [
     { icon: BarChart2, text: 'Full rule-by-rule audit findings' },
     { icon: AlertCircle, text: 'Critical, Warning & Info severity breakdown' },
     { icon: Users, text: 'Affected entity counts per rule' },
     { icon: ShieldCheck, text: 'Remediation action plans per issue' },
-    { icon: RefreshCw, text: '10 comprehensive diagnostic runs' }, // UPDATED
+    { icon: RefreshCw, text: 'Unlimited on-demand audit runs' }, // CHANGED: Emphasize unlimited access
     { icon: Bell, text: 'Real-time health score monitoring' },
     { icon: FileText, text: 'Exportable audit reports (PDF/CSV)' },
     { icon: Clock, text: 'Historical run comparison (30 days)' },
@@ -58,15 +59,15 @@ function BillingPageContent() {
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
     useEffect(() => {
-        document.title = 'Buy Scans — QB Health Monitor | $29';
+        document.title = 'Subscribe — QB Health Monitor | $29/mo';
     }, []);
 
     const handleSubscribe = () => {
         if (!connectionId) return;
         setCheckoutError(null);
 
-        // We leave the hook signature as-is. The backend now defaults to the 10_scans package.
-        checkout({ connectionId, planCode: "10_scans" }, {
+        // CHANGED: Switch to a monthly subscription plan code
+        checkout({ connectionId, planCode: "PLN_MONTHLY_29" }, { // Use the correct plan code from your Paystack dashboard
             onSuccess: (data: any) => {
                 const url = data?.data?.authorizationUrl ?? data?.authorizationUrl;
                 if (url) {
@@ -146,7 +147,7 @@ function BillingPageContent() {
                         {/* Header badge */}
                         <div className="inline-flex items-center gap-2 bg-[hsl(199,89%,48%)]/10 text-[hsl(199,89%,40%)] border border-[hsl(199,89%,48%)]/20 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">
                             <Star className="h-3 w-3" />
-                            QB Health Pro
+                            QB Health Pro Monthly
                         </div>
 
                         {/* Price block */}
@@ -156,11 +157,11 @@ function BillingPageContent() {
                                     $29
                                 </span>
                                 <div className="flex flex-col leading-tight">
-                                    <span className="text-sm font-bold text-slate-500">/ 10 scans</span>
+                                    <span className="text-sm font-bold text-slate-500">/ month</span> {/* CHANGED: Indicate recurring price */}
                                 </div>
                             </div>
                             <p className="text-[12px] text-slate-400 font-medium">
-                                One-time payment · No auto-renewal
+                                Billed monthly · Cancel anytime {/* CHANGED: Clarify billing cycle */}
                             </p>
                         </div>
 
@@ -175,7 +176,7 @@ function BillingPageContent() {
                                 'Full rule-by-rule findings',
                                 'Exact affected entity counts',
                                 'Remediation action plans',
-                                '10 on-demand audit runs', // UPDATED
+                                'Unlimited on-demand audits', // CHANGED: Reflect unlimited access
                             ].map(item => (
                                 <div key={item} className="flex items-center gap-3">
                                     <div className="h-5 w-5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
@@ -207,7 +208,7 @@ function BillingPageContent() {
                             ) : (
                                 <>
                                     <Lock className="h-4 w-4" />
-                                    Buy 10 Scans — $29
+                                    Subscribe Now — $29/mo {/* CHANGED: Reflect subscription action */}
                                 </>
                             )}
                         </button>
@@ -255,16 +256,16 @@ function BillingPageContent() {
                     <div className="space-y-3">
                         <div className="inline-flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-500">
                             <Zap className="h-3 w-3" />
-                            Pay only for what you use
+                            Monthly Access {/* CHANGED: Reflect recurring nature */}
                         </div>
                         <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-tight">
                             Unlock full<br />
                             <span className="text-[hsl(199,89%,48%)]">diagnostic findings</span>
                         </h1>
                         <p className="text-sm text-slate-500 font-medium leading-relaxed max-w-md">
-                            Your audit already ran — the issues are real. Buy a scan package to see
+                            Your audit already ran — the issues are real. Subscribe to see
                             exactly which transactions are at risk and how to fix them before
-                            they become a compliance problem.
+                            they become a compliance problem. {/* CHANGED: Generalize text */}
                         </p>
                     </div>
 

@@ -1,11 +1,12 @@
+// apps/web/components/dashboard/SyncStatusCard.tsx
 'use client';
-
 import React, { useEffect } from 'react';
 import { Clock, ShieldCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 import { format, isValid } from 'date-fns';
 
+// Define types for props
 interface Metrics {
     lastSync?: Date | string | null;
 }
@@ -19,9 +20,10 @@ interface Props {
     latestDiagnostics: LatestDiagnostics | null;
     isLoading: boolean;
     isAuditing: boolean;
-    onRunAudit: () => void;
+    onRunAudit: () => void; // Function to trigger the audit
     isOnCooldown: boolean;
     cooldownRemaining: number;
+    isLocked: boolean; // NEW PROP: Passed from parent based on subscription status
 }
 
 // Safe formatting helper to prevent UI crashes
@@ -39,8 +41,11 @@ export function SyncStatusCard({
     isAuditing,
     onRunAudit,
     isOnCooldown,
-    cooldownRemaining
+    cooldownRemaining,
+    isLocked // Receive the isLocked prop
 }: Props) {
+    // ... (useEffect logging remains the same) ...
+
     useEffect(() => {
         console.log(' [SyncStatusCard] isAuditing changed to:', isAuditing);
         if (!isAuditing) {
@@ -57,9 +62,11 @@ export function SyncStatusCard({
 
     // Determine raw date target safely
     const rawDate = metrics?.lastSync ?? latestDiagnostics?.runAt;
-
     const formattedTime = safeFormatDate(rawDate, 'h:mm a', 'Never');
     const formattedDate = safeFormatDate(rawDate, 'MMM d, yyyy', 'No data available');
+
+    // Determine button disabled state based on subscription lock AND cooldown
+    const isButtonDisabled = isAuditing || isOnCooldown || isLocked; // Added isLocked condition
 
     return (
         <div
@@ -78,32 +85,40 @@ export function SyncStatusCard({
                     </span>
                 </div>
             </div>
-
             <div className="flex flex-col gap-1">
                 <span className="text-xl font-black text-slate-900 tracking-tight">
-                    {formattedTime}
+                    {/* Changed status text based on subscription lock */}
+                    {isLocked ? "Subscription Required" : formattedTime}
                 </span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    {formattedDate}
+                    {/* Changed status text based on subscription lock */}
+                    {isLocked ? "Unlock full features with an active subscription" : formattedDate}
                 </span>
             </div>
-
             <div className="pt-2 flex items-center gap-2">
                 <Button
                     onClick={() => {
                         console.log(' [SyncStatusCard] Run Audit button clicked!');
-                        onRunAudit();
+                        // Ensure onRunAudit is only called if not locked or on cooldown
+                        if (!isButtonDisabled) {
+                            onRunAudit(); // Call the parent handler
+                        }
                     }}
-                    disabled={isAuditing || isOnCooldown}
+                    disabled={isButtonDisabled} // Use the combined disable state
                     className={cn(
                         "w-full bg-[hsl(199,89%,48%)] hover:bg-[hsl(199,89%,58%)] text-white font-black rounded-xl h-10 text-[11px] uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-blue-100",
-                        isOnCooldown && "blur-sm opacity-50 cursor-not-allowed pointer-events-none"
+                        (isOnCooldown || isLocked) && "blur-sm opacity-50 cursor-not-allowed pointer-events-none" // Apply visual cue for both cooldown and lock
                     )}
                 >
                     {isAuditing ? (
                         <>
                             <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
                             Auditing...
+                        </>
+                    ) : isLocked ? ( // Show different text if locked
+                        <>
+                            <ShieldCheck className="mr-2 h-3.5 w-3.5" />
+                            Upgrade Required
                         </>
                     ) : (
                         <>
@@ -112,13 +127,24 @@ export function SyncStatusCard({
                         </>
                     )}
                 </Button>
-
-                {isOnCooldown && (
+                {/* Keep the cooldown overlay, but also show if locked */}
+                {(isOnCooldown || isLocked) && (
                     <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-amber-50/60 border-2 border-amber-200/70 cursor-not-allowed transition-all duration-300">
-                        <Clock className="h-3 w-3 text-amber-600 mr-1.5" />
-                        <span className="text-[11px] font-black text-amber-700 tabular-nums">
-                            {formatTime(cooldownRemaining)}
-                        </span>
+                        {isLocked ? (
+                            <>
+                                <ShieldCheck className="h-3 w-3 text-amber-600 mr-1.5" />
+                                <span className="text-[11px] font-black text-amber-700">
+                                    Subscribe to Unlock
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                <Clock className="h-3 w-3 text-amber-600 mr-1.5" />
+                                <span className="text-[11px] font-black text-amber-700 tabular-nums">
+                                    {formatTime(cooldownRemaining)}
+                                </span>
+                            </>
+                        )}
                     </div>
                 )}
             </div>

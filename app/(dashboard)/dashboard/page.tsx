@@ -193,8 +193,8 @@ function DashboardContent({ router, error, setError }: any) {
     const { trend, previousScore } = calculateTrend(history || []);
 
     const isLocked =
-        activeConnection?.subscriptionStatus === 'INACTIVE' ||
-        latestDiagnostics?.locked === true ||
+        activeConnection?.subscriptionStatus === 'INACTIVE' || // Check connection status
+        latestDiagnostics?.locked === true || // Check diagnostics API lock flag
         (!latestDiagnostics && activeConnection?.subscriptionStatus !== 'ACTIVE');
 
     const metrics = useDiagnosticMetrics(latestDiagnostics ?? null);
@@ -246,12 +246,12 @@ function DashboardContent({ router, error, setError }: any) {
 
                 <ErrorBoundary>
                     <SyncStatusCard
-                        {...({ isLocked } as any)}
+                        {...({ isLocked } as any)} // Pass the isLocked state
                         metrics={metrics}
                         latestDiagnostics={latestDiagnostics ?? null}
                         isLoading={isLoading}
                         isAuditing={isAuditing}
-                        onRunAudit={handleRunAudit}
+                        onRunAudit={handleRunAudit} // Pass the handler
                         isOnCooldown={isOnCooldown}
                         cooldownRemaining={cooldownRemaining}
                     />
