@@ -1,7 +1,7 @@
 // apps/web/components/dashboard/SyncStatusCard.tsx
 'use client';
 import React, { useEffect } from 'react';
-import { Clock, ShieldCheck, Loader2 } from 'lucide-react';
+import { Clock, ShieldCheck, Loader2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 import { format, isValid } from 'date-fns';
@@ -45,7 +45,7 @@ export function SyncStatusCard({
     isLocked // Receive the isLocked prop
 }: Props) {
     // ... (useEffect logging remains the same) ...
-
+    const isButtonDisabled: boolean = isAuditing || isOnCooldown || isLocked;
     useEffect(() => {
         console.log(' [SyncStatusCard] isAuditing changed to:', isAuditing);
         if (!isAuditing) {
@@ -66,7 +66,6 @@ export function SyncStatusCard({
     const formattedDate = safeFormatDate(rawDate, 'MMM d, yyyy', 'No data available');
 
     // Determine button disabled state based on subscription lock AND cooldown
-    const isButtonDisabled = isAuditing || isOnCooldown || isLocked; // Added isLocked condition
 
     return (
         <div
@@ -98,16 +97,20 @@ export function SyncStatusCard({
             <div className="pt-2 flex items-center gap-2">
                 <Button
                     onClick={() => {
+                        const isButtonDisabled: boolean = isAuditing || isOnCooldown || isLocked;
                         console.log(' [SyncStatusCard] Run Audit button clicked!');
-                        // Ensure onRunAudit is only called if not locked or on cooldown
                         if (!isButtonDisabled) {
-                            onRunAudit(); // Call the parent handler
+                            onRunAudit();
                         }
                     }}
-                    disabled={isButtonDisabled} // Use the combined disable state
+                    disabled={isButtonDisabled}
                     className={cn(
-                        "w-full bg-[hsl(199,89%,48%)] hover:bg-[hsl(199,89%,58%)] text-white font-black rounded-xl h-10 text-[11px] uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-blue-100",
-                        (isOnCooldown || isLocked) && "blur-sm opacity-50 cursor-not-allowed pointer-events-none" // Apply visual cue for both cooldown and lock
+                        "w-full h-10 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all active:scale-95 shadow-lg",
+                        isLocked
+                            ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                            : isOnCooldown
+                                ? "bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100"
+                                : "bg-[hsl(199,89%,48%)] hover:bg-[hsl(199,89%,58%)] text-white shadow-blue-100"
                     )}
                 >
                     {isAuditing ? (
@@ -115,10 +118,15 @@ export function SyncStatusCard({
                             <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
                             Auditing...
                         </>
-                    ) : isLocked ? ( // Show different text if locked
+                    ) : isLocked ? (
                         <>
-                            <ShieldCheck className="mr-2 h-3.5 w-3.5" />
-                            Upgrade Required
+                            <Lock className="mr-2 h-3.5 w-3.5" />
+                            Subscription Required
+                        </>
+                    ) : isOnCooldown ? (
+                        <>
+                            <Clock className="mr-2 h-3.5 w-3.5" />
+                            Wait {formatTime(cooldownRemaining)}
                         </>
                     ) : (
                         <>
@@ -127,24 +135,14 @@ export function SyncStatusCard({
                         </>
                     )}
                 </Button>
-                {/* Keep the cooldown overlay, but also show if locked */}
-                {(isOnCooldown || isLocked) && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-amber-50/60 border-2 border-amber-200/70 cursor-not-allowed transition-all duration-300">
-                        {isLocked ? (
-                            <>
-                                <ShieldCheck className="h-3 w-3 text-amber-600 mr-1.5" />
-                                <span className="text-[11px] font-black text-amber-700">
-                                    Subscribe to Unlock
-                                </span>
-                            </>
-                        ) : (
-                            <>
-                                <Clock className="h-3 w-3 text-amber-600 mr-1.5" />
-                                <span className="text-[11px] font-black text-amber-700 tabular-nums">
-                                    {formatTime(cooldownRemaining)}
-                                </span>
-                            </>
-                        )}
+
+                {/* ONLY show cooldown overlay if on cooldown AND NOT locked */}
+                {isOnCooldown && !isLocked && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-amber-50/60 border-2 border-amber-200/70 pointer-events-none">
+                        <Clock className="h-3 w-3 text-amber-600 mr-1.5" />
+                        <span className="text-[11px] font-black text-amber-700 tabular-nums">
+                            {formatTime(cooldownRemaining)}
+                        </span>
                     </div>
                 )}
             </div>
