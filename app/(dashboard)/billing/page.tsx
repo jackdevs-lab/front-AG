@@ -67,7 +67,7 @@ function BillingPageContent() {
         setCheckoutError(null);
 
         // CHANGED: Switch to a monthly subscription plan code
-        checkout({ connectionId, planCode: "PLN_MONTHLY_29" }, { // Use the correct plan code from your Paystack dashboard
+        checkout({ connectionId, planCode: "PLN_44437ae17tzxlk5" }, { // Use the correct plan code from your Paystack dashboard
             onSuccess: (data: any) => {
                 const url = data?.data?.authorizationUrl ?? data?.authorizationUrl;
                 if (url) {
