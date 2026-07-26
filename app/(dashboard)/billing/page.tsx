@@ -295,7 +295,7 @@ function BillingPageContent() {
                                 Built for QuickBooks Online teams
                             </p>
                             <p className="text-[11px] text-emerald-600 font-medium mt-0.5">
-                                Covers 40+ diagnostic rules across AR, AP, Banking, and Ledger hygiene.
+                                Covers 20+ diagnostic rules across AR, AP, Banking, and Ledger hygiene.
                             </p>
                         </div>
                     </div>
