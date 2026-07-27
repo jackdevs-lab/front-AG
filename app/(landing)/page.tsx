@@ -85,9 +85,11 @@ export default function LandingPage() {
                                             Connect QuickBooks <ArrowRight className="h-4 w-4" />
                                         </Button>
                                     </SignUpButton>
-                                    <Button variant="outline" size="lg" className="h-12 px-6 bg-white hover:bg-zinc-50 text-zinc-900 border-zinc-300 rounded-md font-medium transition-all w-full sm:w-auto">
-                                        Contact Sales
-                                    </Button>
+                                    <Link href="/pricing">
+                                        <Button variant="outline" size="lg" className="h-12 px-6 bg-white hover:bg-zinc-50 text-zinc-900 border-zinc-300 rounded-md font-medium transition-all w-full sm:w-auto">
+                                            See Plans
+                                        </Button>
+                                    </Link>
                                 </div>
 
                                 <div className="flex items-center gap-6 text-sm font-medium text-zinc-500 pt-4">
