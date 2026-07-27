@@ -7,12 +7,13 @@ import { Loader2, Plus, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ConnectionsPage() {
-    const { connections, isLoading, runAudit, refetch } = useConnections();
+    // 1. Pull deleteConnection out of the hook
+    const { connections, isLoading, runAudit, refetch, deleteConnection } = useConnections();
 
     const handleDelete = async (id: string) => {
         if (confirm('Are you sure you want to disconnect this QuickBooks account?')) {
-            // Delete logic would go here, usually calling an API
-            console.log('Delete connection:', id);
+            // 2. Execute the delete mutation from TanStack Query
+            deleteConnection(id);
         }
     };
 

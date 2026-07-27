@@ -39,7 +39,7 @@ export default function LandingPage() {
                             Platform
                         </Link>
                         <Link className="hover:text-zinc-900 transition-colors" href="#qbo-health">
-                            QBO Health
+                            QuickBooks Online Health
                         </Link>
                         <Link className="hover:text-zinc-900 transition-colors" href="/pricing">
                             See Pricing
@@ -220,7 +220,7 @@ export default function LandingPage() {
                                 Built for absolute accuracy.
                             </h2>
                             <p className="text-lg text-zinc-600">
-                                We designed Audit Gen to remove the guesswork from month-end close. Run comprehensive diagnostics across your QBO files with a platform trusted by professional accountants.
+                                We designed Audit Gen to remove the guesswork from month-end close. Run comprehensive diagnostics across your QuickBooks Online files with a platform trusted by professional accountants.
                             </p>
                         </div>
 
@@ -254,7 +254,7 @@ export default function LandingPage() {
                                 </div>
                                 <h3 className="text-lg font-semibold text-zinc-900 mb-2">Executive Reporting</h3>
                                 <p className="text-sm text-zinc-600 leading-relaxed">
-                                    Generate clean, client-ready QBO Health reports. Track historical hygiene scores and demonstrate the value of your bookkeeping services.
+                                    Generate clean, client-ready QuickBooks Online Health reports. Track historical hygiene scores and demonstrate the value of your bookkeeping services.
                                 </p>
                             </div>
                         </div>
@@ -283,7 +283,7 @@ export default function LandingPage() {
                                     </li>
                                     <li className="flex items-start gap-3">
                                         <CheckCircle2 className="w-5 h-5 text-zinc-900 shrink-0 mt-0.5" />
-                                        <span className="text-sm text-zinc-700 font-medium">One-click deep linking to QBO source records</span>
+                                        <span className="text-sm text-zinc-700 font-medium">One-click deep linking to QuickBooks Online source records</span>
                                     </li>
                                     <li className="flex items-start gap-3">
                                         <CheckCircle2 className="w-5 h-5 text-zinc-900 shrink-0 mt-0.5" />
@@ -381,7 +381,7 @@ export default function LandingPage() {
                             Ready to standardize your bookkeeping?
                         </h2>
                         <p className="text-lg text-zinc-600 mb-8 max-w-2xl mx-auto">
-                            Join the firms using Audit Gen to maintain impeccable QBO health and catch costly errors before they become liabilities.
+                            Join the firms using Audit Gen to maintain impeccable QuickBooks Online health and catch costly errors before they become liabilities.
                         </p>
                         <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
                             <Button size="lg" className="h-12 px-8 bg-zinc-900 hover:bg-zinc-800 text-white rounded-md font-medium shadow-sm">

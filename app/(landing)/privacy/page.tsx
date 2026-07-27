@@ -32,9 +32,9 @@ export default function PrivacyPolicyPage() {
                         <li><strong>Payment Information:</strong> When you subscribe, payment details (processed securely by Paystack) are collected by Paystack, not stored directly by us.</li>
                     </ul>
                 </li>
-                <li><strong>Information Retrieved from Connected Services (QBO):</strong>
+                <li><strong>Information Retrieved from Connected Services (QuickBooks Online):</strong>
                     <ul>
-                        <li>As detailed in our Data Authorization Policy, upon connecting your QBO account, we access specific data types within your QBO company file (e.g., transactions, accounts, customers, vendors) solely for diagnostic analysis.<strong>We do not store your QBO login credentials.</strong> </li>
+                        <li>As detailed in our Data Authorization Policy, upon connecting your QuickBooks Online account, we access specific data types within your QuickBooks Online company file (e.g., transactions, accounts, customers, vendors) solely for diagnostic analysis.<strong>We do not store your QuickBooks Online login credentials.</strong> </li>
                     </ul>
                 </li>
                 <li><strong>Automatically Collected Information:</strong>
@@ -50,7 +50,7 @@ export default function PrivacyPolicyPage() {
             <p>We use the collected information for various purposes:</p>
             <ul>
                 <li>To provide and maintain the Service: Including authenticating you, managing your account, and delivering the diagnostic features.</li>
-                <li>To perform data analysis and diagnostics: To analyze your QBO data as authorized, generate reports, and provide insights.</li>
+                <li>To perform data analysis and diagnostics: To analyze your QuickBooks Online data as authorized, generate reports, and provide insights.</li>
                 <li>To improve the Service: To monitor performance, identify trends, and improve the functionality and user experience.</li>
                 <li>To communicate with you: To send you updates, notifications, and respond to your requests.</li>
                 <li>To comply with legal obligations: To fulfill our legal duties and comply with applicable laws.</li>
@@ -60,7 +60,7 @@ export default function PrivacyPolicyPage() {
             <p>We may share your information in the following situations:</p>
             <ul>
                 <li><strong>With Service Providers:</strong> We may share your information with trusted third-party service providers who perform services on our behalf (e.g., payment processing via Paystack, hosting, analytics, customer support). These providers are contractually obligated to maintain the confidentiality and security of your data and are prohibited from using it for any other purpose.</li>
-                <li><strong>With QBO (Intuit):</strong> Access to your QBO data occurs via secure API calls as authorized by you through OAuth 2.0.</li>
+                <li><strong>With QuickBooks Online (Intuit):</strong> Access to your QuickBooks Online data occurs via secure API calls as authorized by you through OAuth 2.0.</li>
                 <li><strong>For Legal Reasons:</strong> We may disclose your information if required to do so by law or in response to valid requests by public authorities (e.g., court orders, government agencies).</li>
                 <li><strong>With Your Consent:</strong> We may share your information with or without  your explicit consent.</li>
             </ul>
@@ -68,7 +68,7 @@ export default function PrivacyPolicyPage() {
             <h2>5. Data Retention</h2>
             <ul>
                 <li><strong>Account Data:</strong> We retain your account information (name, email) as long as your account is active or as needed to provide the Service.</li>
-                <li><strong>QBO Data:</strong> Data retrieved from your QBO account is retained as long as your connection to the Service is active and your account exists. Upon disconnection or account deletion, this data is deleted from our systems according to our data retention and deletion policies (as outlined in the Data Authorization Policy).</li>
+                <li><strong>QuickBooks Online Data:</strong> Data retrieved from your QuickBooks Online account is retained as long as your connection to the Service is active and your account exists. Upon disconnection or account deletion, this data is deleted from our systems according to our data retention and deletion policies (as outlined in the Data Authorization Policy).</li>
                 <li><strong>Payment Data:</strong> Payment details are handled and retained by Paystack according to their own policies.</li>
                 <li><strong>Log Data:</strong> Log data is retained for operational and security purposes for a limited period.</li>
             </ul>

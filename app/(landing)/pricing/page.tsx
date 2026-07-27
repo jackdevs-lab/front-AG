@@ -22,7 +22,7 @@ const SINGLE_FEATURES = [
     '1 QuickBooks Online connection',
     'Full rule-by-rule audit findings',
     'Critical, Warning & Info severity breakdown',
-    'Affected entity counts & direct QBO links',
+    'Affected entity counts & direct QuickBooks Online links',
     'Remediation action plans per issue',
     'Unlimited on-demand audit runs',
 ];
@@ -74,7 +74,7 @@ export default function PricingPage() {
                                 <span className="text-sm font-medium text-zinc-500">/ month</span>
                             </div>
                             <p className="text-sm text-zinc-500 mb-8 pb-8 border-b border-zinc-100">
-                                Billed monthly per connected QBO file. Cancel anytime.
+                                Billed monthly per connected QuickBooks Online file. Cancel anytime.
                             </p>
 
                             <ul className="space-y-4 mb-8">
@@ -125,7 +125,7 @@ export default function PricingPage() {
                                 <span className="text-sm font-medium text-zinc-400">/ month</span>
                             </div>
                             <p className="text-sm text-zinc-500 mb-8 pb-8 border-b border-zinc-200">
-                                Billed monthly for up to 5 connected QBO files.
+                                Billed monthly for up to 5 connected QuickBooks Online files.
                             </p>
 
                             <ul className="space-y-4 mb-8">

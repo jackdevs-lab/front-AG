@@ -24,9 +24,26 @@ export function useConnections() {
         }
     });
 
+    // Optimistic Delete Mutation
     const deleteMutation = useMutation({
         mutationFn: (id: string) => connectionsApi.delete(id),
-        onSuccess: () => {
+        onMutate: async (deletedId: string) => {
+            await queryClient.cancelQueries({ queryKey: ['connections'] });
+
+            const previousConnections = queryClient.getQueryData<Connection[]>(['connections']);
+
+            queryClient.setQueryData<Connection[]>(['connections'], (old) =>
+                old ? old.filter((connection) => connection.id !== deletedId) : []
+            );
+
+            return { previousConnections };
+        },
+        onError: (err, deletedId, context) => {
+            if (context?.previousConnections) {
+                queryClient.setQueryData(['connections'], context.previousConnections);
+            }
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ['connections'] });
         },
     });
@@ -70,79 +87,4 @@ export function useConnections() {
         updateConnection: updateMutation.mutate,
         isUpdating: updateMutation.isPending,
     };
-}
-
-export function useSuspenseConnections() {
-    const { data, refetch } = useSuspenseQuery({
-        queryKey: ['connections'],
-        queryFn: async () => {
-            const response = await connectionsApi.list();
-            return response.data as Connection[];
-        },
-        staleTime: 0,
-    });
-
-    return {
-        connections: data || [],
-        refetch,
-    };
-}
-
-export function useConnection(id: string) {
-    const { isLoaded, isSignedIn } = useAuth();
-
-    return useQuery({
-        queryKey: ['connection', id],
-        queryFn: async () => {
-            const response = await connectionsApi.getById(id);
-            return response.data;
-        },
-        enabled: !!id && isLoaded && !!isSignedIn,
-        staleTime: 10000,
-    });
-}
-
-export function useConnectionStatus(connectionId: string, isSyncExpectedToRun?: boolean) {
-    const { isLoaded, isSignedIn } = useAuth();
-
-    return useQuery({
-        queryKey: ['connection-status', connectionId],
-        queryFn: async () => {
-            const data = await api.get(`/connections/${connectionId}/status`);
-            return data;
-        },
-        enabled: !!connectionId && isLoaded && !!isSignedIn,
-        refetchInterval: (query) => {
-            const currentStatus = query.state.data?.syncStatus;
-            return (currentStatus === 'SYNCING' || isSyncExpectedToRun) ? 3000 : false;
-        },
-        staleTime: 1000,
-    });
-}
-
-export function useConnectionFindings(connectionId: string) {
-    const { isLoaded, isSignedIn } = useAuth();
-
-    return useQuery({
-        queryKey: ['connection-findings', connectionId],
-        queryFn: async () => {
-            try {
-                const response = await api.get(`/connections/${connectionId}/findings`);
-                return {
-                    findings: response.data ?? response,
-                    isLocked: false
-                };
-            } catch (error: any) {
-                if (error?.response?.status === 403 || error?.status === 403) {
-                    return {
-                        findings: null,
-                        isLocked: true
-                    };
-                }
-                throw error;
-            }
-        },
-        enabled: !!connectionId && isLoaded && !!isSignedIn,
-        staleTime: 10000,
-    });
 }
