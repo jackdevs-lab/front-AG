@@ -119,7 +119,7 @@ export default function LandingPage() {
                                         </div>
                                         <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded px-2.5 py-1">
                                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Entity:</span>
-                                            <span className="text-[11px] font-bold text-slate-700">Wests  Plumbing Firm</span>
+                                            <span className="text-[11px] font-bold text-slate-700">Anne's Flower Store</span>
                                         </div>
                                     </div>
 
@@ -133,18 +133,18 @@ export default function LandingPage() {
                                                     <Shield className="w-4 h-4 text-slate-400" />
                                                     <h2 className="text-[11px] font-bold text-slate-600 uppercase tracking-widest">Health Score</h2>
                                                 </div>
-                                                <span className="bg-emerald-100/60 text-emerald-700 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                                    Good
+                                                <span className="bg-rose-100/60 text-rose-700 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                    Critical
                                                 </span>
                                             </div>
 
                                             <div className="flex items-baseline gap-1 mb-4">
-                                                <span className="text-5xl font-bold text-emerald-500 tracking-tighter">85</span>
+                                                <span className="text-5xl font-bold text-rose-500 tracking-tighter">45</span>
                                                 <span className="text-sm font-semibold text-slate-300">/100</span>
                                             </div>
 
                                             <div className="w-full h-2 bg-slate-100 rounded-full mb-5 overflow-hidden">
-                                                <div className="h-full bg-emerald-500 w-[85%] rounded-full"></div>
+                                                <div className="h-full bg-rose-500 w-[45%] rounded-full"></div>
                                             </div>
 
                                             <div className="flex items-center gap-2 mb-2">
@@ -358,9 +358,9 @@ export default function LandingPage() {
                                                 </div>
 
                                                 {/* Direct QuickBooks Link Button (Static UI) */}
-                                                <div className="inline-flex items-center justify-center gap-2 bg-[#2563eb] text-white text-sm font-medium px-5 py-2.5 rounded-lg shadow-sm cursor-default">
+                                                <div className="inline-flex items-center justify-center gap-2 bg-[#2CA01C] hover:bg-[#108000] transition-colors text-white text-sm font-semibold px-5 py-2.5 rounded-full shadow-sm cursor-pointer">
                                                     <BarChart3 className="w-4 h-4 rotate-90" />
-                                                    Quickbooks Link
+                                                    QuickBooks Link
                                                     <ArrowRight className="w-3.5 h-3.5 -rotate-45 ml-1 opacity-80" />
                                                 </div>
                                             </div>
