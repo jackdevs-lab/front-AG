@@ -2,12 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-    LayoutDashboard, 
-    ClipboardList, 
-    FileText, 
-    Settings, 
-    LogOut,
+import {
+    LayoutDashboard,
+    Settings,
     Menu,
     X,
     Database,
@@ -16,12 +13,9 @@ import {
 import { cn } from '@/lib/utils/cn';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/lib/hooks/useAuth';
 
 const menuItems = [
     { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { title: 'Rules', href: '/rules', icon: ClipboardList },
-    { title: 'System Logs', href: '/logs', icon: FileText },
     { title: 'Connections', href: '/connections', icon: Database },
     { title: 'Billing', href: '/billing', icon: CreditCard },
 ];
@@ -29,7 +23,6 @@ const menuItems = [
 export function Sidebar() {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
-    const { logout } = useAuth();
 
     return (
         <>
@@ -45,7 +38,7 @@ export function Sidebar() {
 
             {/* Backdrop */}
             {isOpen && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
                     onClick={() => setIsOpen(false)}
                 />
@@ -57,12 +50,9 @@ export function Sidebar() {
             )}>
                 {/* Logo Section */}
                 <div className="h-16 flex items-center px-6 border-b border-gray-50 flex-shrink-0">
-                    <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-black overflow-hidden">
-                        Q
-                    </div>
                     {isOpen && (
                         <span className="ml-3 font-black text-gray-900 tracking-tight text-sm uppercase">
-                            Health <span className="text-primary">Monitor</span>
+                            Audit<span className="text-primary">Gen</span>
                         </span>
                     )}
                 </div>
@@ -72,15 +62,15 @@ export function Sidebar() {
                     {menuItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = pathname === item.href;
-                        
+
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
                                     "flex items-center px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group relative",
-                                    isActive 
-                                        ? "bg-primary/5 text-primary shadow-sm shadow-primary/5" 
+                                    isActive
+                                        ? "bg-primary/5 text-primary shadow-sm shadow-primary/5"
                                         : "text-muted-foreground hover:bg-gray-50 hover:text-gray-900"
                                 )}
                             >
@@ -113,14 +103,7 @@ export function Sidebar() {
                         <Settings className="h-5 w-5" />
                         {isOpen && <span className="ml-3">Settings</span>}
                     </Link>
-                    <button
-                        onClick={logout}
-                        className="flex items-center w-full px-4 py-3 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-all duration-200"
-                    >
-                        <LogOut className="h-5 w-5" />
-                        {isOpen && <span className="ml-3">Logout</span>}
-                    </button>
-                    
+
                     {/* Expand Toggle Desktop */}
                     <button
                         onClick={() => setIsOpen(!isOpen)}

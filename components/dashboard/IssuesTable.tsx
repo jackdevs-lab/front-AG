@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Issue, Severity, DiagnosticEntity } from '@/types/diagnostic';
 import { AuditDrawer } from '@/components/diagnostics/AuditDrawer';
 import { SubscriptionButton } from '@/components/billing/SubscriptionButton';
@@ -17,7 +17,21 @@ import { AlertCircle, ChevronRight, Info, ShieldAlert, FileSearch, Lock, ShieldC
 import { cn } from '@/lib/utils/cn';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SEVERITY_PRIORITY: Record<string, number> = {
+    CRITICAL: 3,
+    WARNING: 2,
+    INFO: 1
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // LockedIssuesOverlay
+//
+// Rendered instead of actual issue data when subscriptionStatus !== 'ACTIVE'.
+// Shows a blurred placeholder table so users understand the shape of what
+// they're missing, plus a clear upgrade CTA.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PLACEHOLDER_ISSUES = [
@@ -39,28 +53,28 @@ function LockedIssuesOverlay({ connectionId }: { connectionId: string }) {
                 <Table>
                     <TableHeader className="bg-slate-50/50">
                         <TableRow className="border-slate-100">
-                            <TableHead className="w-[400px] text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Diagnostic Rule</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Severity</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Affected Entities</TableHead>
-                            <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Action</TableHead>
+                            <TableHead className="w-[45%] text-[10px] font-black uppercase tracking-widest text-slate-400 py-4 pl-6">Diagnostic Rule</TableHead>
+                            <TableHead className="w-[20%] text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Severity</TableHead>
+                            <TableHead className="w-[20%] text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Affected Entities</TableHead>
+                            <TableHead className="w-[15%] text-right text-[10px] font-black uppercase tracking-widest text-slate-400 py-4 pr-6">Action</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {PLACEHOLDER_ISSUES.map((row, i) => (
                             <TableRow key={i} className="border-slate-100">
-                                <TableCell className="py-5">
+                                <TableCell className="w-[45%] py-5 pl-6">
                                     <div className="flex flex-col gap-2">
                                         <div className="h-3 w-48 rounded bg-slate-200 animate-pulse" />
                                         <div className="h-2 w-24 rounded bg-slate-100 animate-pulse" />
                                     </div>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="w-[20%]">
                                     <div className="h-4 w-20 rounded bg-slate-100 animate-pulse" />
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="w-[20%]">
                                     <div className="h-5 w-8 rounded bg-slate-100 animate-pulse" />
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="w-[15%] text-right pr-6">
                                     <div className="inline-flex h-8 w-8 rounded-full bg-slate-100 animate-pulse" />
                                 </TableCell>
                             </TableRow>
@@ -126,7 +140,7 @@ export function IssuesTable(props: Props) {
         return <LockedIssuesOverlay connectionId={props.connectionId} />;
     }
 
-    const { issues, filterType } = props;
+    const { issues = [], filterType } = props;
     return <UnlockedIssuesTable issues={issues} filterType={filterType} />;
 }
 
@@ -136,7 +150,7 @@ export function IssuesTable(props: Props) {
 function UnlockedIssuesTable({ issues, filterType }: { issues: Issue[]; filterType: string | null }) {
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
 
-    const filteredIssues = React.useMemo(() => {
+    const filteredIssues = useMemo(() => {
         if (!filterType) return issues;
         return issues.filter(issue =>
             Array.isArray(issue.entities) &&
@@ -144,7 +158,7 @@ function UnlockedIssuesTable({ issues, filterType }: { issues: Issue[]; filterTy
         );
     }, [issues, filterType]);
 
-    const groupedIssues = React.useMemo(() => {
+    const groupedIssues = useMemo(() => {
         const groups: Record<string, {
             ruleName: string;
             severity: Severity;
@@ -154,22 +168,35 @@ function UnlockedIssuesTable({ issues, filterType }: { issues: Issue[]; filterTy
 
         filteredIssues.forEach(issue => {
             if (!groups[issue.ruleId]) {
-                groups[issue.ruleId] = { ruleName: issue.ruleName, severity: issue.severity, totalEntities: 0, latestIssue: issue };
+                groups[issue.ruleId] = {
+                    ruleName: issue.ruleName,
+                    severity: issue.severity,
+                    totalEntities: 0,
+                    latestIssue: issue
+                };
             }
+
             groups[issue.ruleId].totalEntities += issue.entityCount;
-            const priority = { 'CRITICAL': 3, 'WARNING': 2, 'INFO': 1 };
-            if (priority[issue.severity] > priority[groups[issue.ruleId].severity]) {
+
+            // Upgrade group severity if the current issue is higher priority
+            const currentPriority = SEVERITY_PRIORITY[issue.severity] || 0;
+            const groupPriority = SEVERITY_PRIORITY[groups[issue.ruleId].severity] || 0;
+
+            if (currentPriority > groupPriority) {
                 groups[issue.ruleId].severity = issue.severity;
                 groups[issue.ruleId].latestIssue = issue;
             }
         });
 
+        // Sort by highest severity first
         return Object.entries(groups).sort((a, b) => {
-            const priority = { 'CRITICAL': 3, 'WARNING': 2, 'INFO': 1 };
-            return priority[b[1].severity] - priority[a[1].severity];
+            const priorityA = SEVERITY_PRIORITY[a[1].severity] || 0;
+            const priorityB = SEVERITY_PRIORITY[b[1].severity] || 0;
+            return priorityB - priorityA;
         });
     }, [filteredIssues]);
 
+    // Empty state - zero issues overall
     if (issues.length === 0) {
         return (
             <div className="bg-white rounded-3xl border border-dashed border-slate-200 p-20 text-center space-y-4">
@@ -186,47 +213,61 @@ function UnlockedIssuesTable({ issues, filterType }: { issues: Issue[]; filterTy
         );
     }
 
+    // Empty state - filtered out
     if (filteredIssues.length === 0 && filterType) {
         return (
             <div className="py-20 text-center">
-                <p className="text-sm font-black text-slate-900">No issues for "{filterType}"</p>
+                <p className="text-sm font-black text-slate-900">No issues for &quot;{filterType}&quot;</p>
                 <p className="text-xs text-slate-400 mt-1">Try selecting a different entity type or clear filters.</p>
             </div>
         );
     }
 
     return (
-        <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+        <div
+            className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm"
+            role="region"
+            aria-label="Diagnostic Issues Table"
+        >
             <div className="overflow-x-auto">
                 <Table>
                     <TableHeader className="bg-slate-50/50">
                         <TableRow className="hover:bg-transparent border-slate-100">
-                            <TableHead className="w-[400px] text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Diagnostic Rule</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Severity</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Affected Entities</TableHead>
-                            <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Action</TableHead>
+                            <TableHead className="w-[45%] text-[10px] font-black uppercase tracking-widest text-slate-400 py-4 pl-6">Diagnostic Rule</TableHead>
+                            <TableHead className="w-[20%] text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Severity</TableHead>
+                            <TableHead className="w-[20%] text-[10px] font-black uppercase tracking-widest text-slate-400 py-4">Affected Entities</TableHead>
+                            <TableHead className="w-[15%] text-right text-[10px] font-black uppercase tracking-widest text-slate-400 py-4 pr-6">Action</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {groupedIssues.map(([ruleId, group]) => (
                             <TableRow
                                 key={ruleId}
-                                className="group cursor-pointer hover:bg-slate-50/50 transition-colors border-slate-100"
+                                className="group cursor-pointer hover:bg-slate-50/80 transition-colors border-slate-100"
                                 onClick={() => setSelectedIssue(group.latestIssue)}
+                                tabIndex={0}
+                                role="button"
+                                aria-label={`View issue details for ${group.ruleName}`}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        setSelectedIssue(group.latestIssue);
+                                    }
+                                }}
                             >
-                                <TableCell className="py-5">
+                                <TableCell className="w-[45%] py-5 pl-6">
                                     <div className="flex flex-col gap-1">
                                         <span className="text-sm font-black text-slate-900 group-hover:text-primary transition-colors">{group.ruleName}</span>
                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{ruleId}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="w-[20%]">
                                     <div className="flex items-center gap-2">
                                         {group.severity === 'CRITICAL'
-                                            ? <ShieldAlert className="h-4 w-4 text-rose-500" />
+                                            ? <ShieldAlert className="h-4 w-4 text-rose-500" aria-hidden="true" />
                                             : group.severity === 'WARNING'
-                                                ? <AlertCircle className="h-4 w-4 text-amber-500" />
-                                                : <Info className="h-4 w-4 text-blue-500" />}
+                                                ? <AlertCircle className="h-4 w-4 text-amber-500" aria-hidden="true" />
+                                                : <Info className="h-4 w-4 text-blue-500" aria-hidden="true" />}
                                         <span className={cn(
                                             "text-[10px] font-black uppercase tracking-widest",
                                             group.severity === 'CRITICAL' ? "text-rose-600" :
@@ -236,14 +277,14 @@ function UnlockedIssuesTable({ issues, filterType }: { issues: Issue[]; filterTy
                                         </span>
                                     </div>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="w-[20%]">
                                     <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 font-mono font-black text-[11px] px-2.5 py-0.5 rounded-lg">
-                                        {group.totalEntities}
+                                        {group.totalEntities.toLocaleString()}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="text-right">
-                                    <div className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-slate-50 text-slate-400 group-hover:bg-primary group-hover:text-white transition-all">
-                                        <ChevronRight className="h-4 w-4" />
+                                <TableCell className="w-[15%] text-right pr-6">
+                                    <div className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-slate-50 text-slate-400 group-hover:bg-primary group-hover:text-white transition-all ml-auto">
+                                        <ChevronRight className="h-4 w-4" aria-hidden="true" />
                                     </div>
                                 </TableCell>
                             </TableRow>
