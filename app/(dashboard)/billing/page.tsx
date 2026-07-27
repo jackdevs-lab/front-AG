@@ -59,7 +59,7 @@ function BillingPageContent() {
     const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
     useEffect(() => {
-        document.title = 'Subscribe — Audit Gen  | $29/mo';
+        document.title = 'Subscribe — Audit Gen  | $49/mo';
     }, []);
 
     const handleSubscribe = () => {
@@ -154,7 +154,7 @@ function BillingPageContent() {
                         <div className="mb-6">
                             <div className="flex items-baseline gap-2 mb-1">
                                 <span className="text-6xl font-mono font-black text-slate-900 tracking-tighter">
-                                    $29
+                                    $49
                                 </span>
                                 <div className="flex flex-col leading-tight">
                                     <span className="text-sm font-bold text-slate-500">/ month</span> {/* CHANGED: Indicate recurring price */}
@@ -208,7 +208,7 @@ function BillingPageContent() {
                             ) : (
                                 <>
                                     <Lock className="h-4 w-4" />
-                                    Subscribe Now — $29/mo {/* CHANGED: Reflect subscription action */}
+                                    Subscribe Now — $49/mo {/* CHANGED: Reflect subscription action */}
                                 </>
                             )}
                         </button>

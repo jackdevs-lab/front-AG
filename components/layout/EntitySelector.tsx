@@ -21,8 +21,8 @@ export function EntitySelector() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button 
-                    variant="ghost" 
+                <Button
+                    variant="ghost"
                     className="flex items-center gap-2 px-3 py-1.5 h-auto bg-gray-50/50 hover:bg-gray-100 rounded-xl border border-gray-100 transition-all group"
                 >
                     <div className="w-6 h-6 rounded-lg bg-white border border-gray-100 flex items-center justify-center text-primary shadow-sm group-hover:scale-110 transition-transform">
@@ -56,11 +56,7 @@ export function EntitySelector() {
                         >
                             <div className="flex items-center justify-between w-full">
                                 <span className="font-black text-sm">{connection.companyName || 'Unknown Entity'}</span>
-                                {!connection.isSubscribed && (
-                                    <span className="text-[9px] font-black bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full uppercase tracking-tight border border-amber-200">
-                                        Pay to Resolve
-                                    </span>
-                                )}
+
                             </div>
                             <span className="text-[10px] font-bold opacity-60 uppercase tracking-wider">ID: {connection.realmId.slice(0, 12)}...</span>
                         </DropdownMenuItem>
