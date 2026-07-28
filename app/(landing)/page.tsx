@@ -38,8 +38,8 @@ export default function LandingPage() {
                         <Link className="hover:text-zinc-900 transition-colors" href="#platform">
                             Platform
                         </Link>
-                        <Link className="hover:text-zinc-900 transition-colors" href="#qbo-health">
-                            QuickBooks Online Health
+                        <Link className="hover:text-zinc-900 transition-colors" href="/issues">
+                            Support
                         </Link>
                         <Link className="hover:text-zinc-900 transition-colors" href="/pricing">
                             See Pricing
