@@ -35,23 +35,25 @@ export default function LandingPage() {
                     </Link>
 
                     <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600">
-                        <Link className="hover:text-zinc-900 transition-colors" href="#platform">
+
+                        <Link className="hover:text-zinc-900 transition-colors" href="/learn">
                             Platform
                         </Link>
+
+
                         <Link className="hover:text-zinc-900 transition-colors" href="/issues">
                             Support
                         </Link>
+
+
+
                         <Link className="hover:text-zinc-900 transition-colors" href="/pricing">
                             See Pricing
                         </Link>
                     </nav>
 
                     <div className="flex items-center gap-4">
-                        <SignUpButton mode="modal">
-                            <button className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors px-3 py-2">
-                                Sign in
-                            </button>
-                        </SignUpButton>
+
                         <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
                             <Button size="sm" className="bg-zinc-900 hover:bg-zinc-800 text-white rounded-md shadow-sm transition-all px-4">
                                 Start monitoring

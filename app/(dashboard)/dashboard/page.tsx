@@ -24,10 +24,11 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import axios from 'axios';
 import { useQueryClient } from '@tanstack/react-query';
+import { DashboardErrorFallback } from './DashboardErrorFallback';
 
 export default function DashboardPage() {
     return (
-        <ErrorBoundary fallback={<div className="p-10 text-center">Something went wrong. Please refresh.</div>}>
+        <ErrorBoundary fallback={<DashboardErrorFallback />}>
             <Suspense fallback={<DashboardSkeleton />}>
                 <DashboardInner />
             </Suspense>

@@ -58,7 +58,7 @@ export default function PricingPage() {
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid md:grid-cols-2 gap-8 items-start">
 
-                    {/* ── Single Company Plan ($29) ─────────────────────────────────── */}
+                    {/* ── Single Company Plan ($49) ─────────────────────────────────── */}
                     <div className="relative bg-white border border-zinc-200 rounded-lg shadow-sm overflow-hidden flex flex-col h-full">
                         {/* Status Indicator */}
                         <div className="absolute top-0 left-0 right-0 h-1 bg-zinc-900" />
