@@ -16,6 +16,7 @@ import { ConnectQuickBooks } from '@/components/connections/ConnectQuickBooks';
 import { AlertCircle, Database } from 'lucide-react';
 import { calculateTrend } from '@/lib/utils/dashboard-helpers';
 import { Button } from '@/components/ui/button';
+import { api } from '@/lib/api/client';
 import { useDiagnosticMetrics } from '@/lib/hooks/useDiagnosticMetrics';
 import { DetectedIssuesCard } from '@/components/dashboard/DetectedIssuesCard';
 import { ImpactScopeCard } from '@/components/dashboard/ImpactScopeCard';
@@ -121,7 +122,9 @@ function DashboardContent({ router, error, setError }: any) {
 
         const interval = setInterval(async () => {
             try {
-                const { data } = await axios.get(`/api/connections/${selectedConnectionId}/status`);
+                // Replaced raw axios.get with the configured authenticated api client
+                const response = await api.get(`/connections/${selectedConnectionId}/status`);
+                const data = response.data;
 
                 if (data?.syncStatus === 'ERROR') {
                     setError(data.lastSyncMessage || 'The background sync failed. Please try again.');

@@ -44,8 +44,8 @@ export function SyncStatusCard({
     cooldownRemaining,
     isLocked // Receive the isLocked prop
 }: Props) {
-    // ... (useEffect logging remains the same) ...
     const isButtonDisabled: boolean = isAuditing || isOnCooldown || isLocked;
+
     useEffect(() => {
         console.log(' [SyncStatusCard] isAuditing changed to:', isAuditing);
         if (!isAuditing) {
@@ -65,8 +65,6 @@ export function SyncStatusCard({
     const formattedTime = safeFormatDate(rawDate, 'h:mm a', 'Never');
     const formattedDate = safeFormatDate(rawDate, 'MMM d, yyyy', 'No data available');
 
-    // Determine button disabled state based on subscription lock AND cooldown
-
     return (
         <div
             className={cn(
@@ -84,20 +82,19 @@ export function SyncStatusCard({
                     </span>
                 </div>
             </div>
+
             <div className="flex flex-col gap-1">
                 <span className="text-xl font-black text-slate-900 tracking-tight">
-                    {/* Changed status text based on subscription lock */}
                     {isLocked ? "Subscription Required" : formattedTime}
                 </span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    {/* Changed status text based on subscription lock */}
                     {isLocked ? "Unlock full features with an active subscription" : formattedDate}
                 </span>
             </div>
+
             <div className="pt-2 flex items-center gap-2">
                 <Button
                     onClick={() => {
-                        const isButtonDisabled: boolean = isAuditing || isOnCooldown || isLocked;
                         console.log(' [SyncStatusCard] Run Audit button clicked!');
                         if (!isButtonDisabled) {
                             onRunAudit();
@@ -109,7 +106,8 @@ export function SyncStatusCard({
                         isLocked
                             ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
                             : isOnCooldown
-                                ? "bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100"
+                                // Changed cooldown button style to look clean and standard instead of loud yellow
+                                ? "bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed"
                                 : "bg-[hsl(199,89%,48%)] hover:bg-[hsl(199,89%,58%)] text-white shadow-blue-100"
                     )}
                 >
@@ -135,16 +133,7 @@ export function SyncStatusCard({
                         </>
                     )}
                 </Button>
-
-                {/* ONLY show cooldown overlay if on cooldown AND NOT locked */}
-                {isOnCooldown && !isLocked && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-amber-50/60 border-2 border-amber-200/70 pointer-events-none">
-                        <Clock className="h-3 w-3 text-amber-600 mr-1.5" />
-                        <span className="text-[11px] font-black text-amber-700 tabular-nums">
-                            {formatTime(cooldownRemaining)}
-                        </span>
-                    </div>
-                )}
+                {/* The absolute yellow overlay div has been completely removed */}
             </div>
         </div>
     );
