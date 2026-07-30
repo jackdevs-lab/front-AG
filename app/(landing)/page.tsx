@@ -1,5 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from "next/image";
+
 import {
     CheckCircle2,
     ArrowRight,
@@ -26,9 +28,13 @@ export default function LandingPage() {
             <header className="sticky top-0 z-50 w-full border-b border-zinc-200 bg-white/95 backdrop-blur-sm">
                 <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                     <Link className="flex items-center gap-3" href="/">
-                        <div className="w-8 h-8 rounded bg-zinc-900 flex items-center justify-center">
-                            <span className="font-bold text-sm text-white tracking-widest">AG</span>
-                        </div>
+                        <Image
+                            src="/icon.png"
+                            alt="Audit Gen logo"
+                            width={32}
+                            height={32}
+                            className="rounded"
+                        />
                         <span className="font-semibold text-lg tracking-tight text-zinc-900">
                             Audit Gen
                         </span>
@@ -56,7 +62,7 @@ export default function LandingPage() {
 
                         <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
                             <Button size="sm" className="bg-zinc-900 hover:bg-zinc-800 text-white rounded-md shadow-sm transition-all px-4">
-                                Start monitoring
+                                Get Started
                             </Button>
                         </SignUpButton>
                     </div>
@@ -173,11 +179,11 @@ export default function LandingPage() {
                                             <div className="grid grid-cols-2 gap-3 mt-auto">
                                                 <div className="bg-rose-50/40 border border-rose-100 rounded-lg p-3 flex flex-col justify-center">
                                                     <p className="text-[9px] font-bold text-rose-600 uppercase tracking-widest mb-1">Critical</p>
-                                                    <p className="text-xl font-bold text-rose-600">0</p>
+                                                    <p className="text-xl font-bold text-rose-600">21</p>
                                                 </div>
                                                 <div className="bg-amber-50/40 border border-amber-100 rounded-lg p-3 flex flex-col justify-center">
                                                     <p className="text-[9px] font-bold text-amber-600 uppercase tracking-widest mb-1">Warning</p>
-                                                    <p className="text-xl font-bold text-amber-600">77</p>
+                                                    <p className="text-xl font-bold text-amber-600">56</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -398,10 +404,16 @@ export default function LandingPage() {
             <footer className="border-t border-zinc-200 bg-white py-12">
                 <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded bg-zinc-900 flex items-center justify-center">
-                            <span className="font-bold text-[10px] text-white tracking-widest">AG</span>
-                        </div>
-                        <span className="text-sm font-semibold text-zinc-900">Audit Gen Inc.</span>
+                        <Image
+                            src="/icon.png"
+                            alt="Audit Gen logo"
+                            width={24}
+                            height={24}
+                            className="rounded"
+                        />
+                        <span className="text-sm font-semibold text-zinc-900">
+                            Audit Gen Inc.
+                        </span>
                     </div>
 
                     <p className="text-sm text-zinc-500">

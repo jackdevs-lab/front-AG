@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -50,6 +52,14 @@ export function Sidebar() {
             )}>
                 {/* Logo Section */}
                 <div className="h-16 flex items-center px-6 border-b border-gray-50 flex-shrink-0">
+                    <Image
+                        src="/icon.png"
+                        alt="Audit Gen logo"
+                        width={32}
+                        height={32}
+                        className="rounded"
+                    />
+
                     {isOpen && (
                         <span className="ml-3 font-black text-gray-900 tracking-tight text-sm uppercase">
                             Audit<span className="text-primary">Gen</span>
