@@ -49,7 +49,7 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
                             <div className="absolute -inset-1 bg-gradient-to-r from-[#2CA01C] to-[#1D6E11] rounded-xl blur opacity-25 group-hover/logo:opacity-50 transition duration-300" />
                             <div className="relative w-14 h-14 rounded-xl bg-white border border-[#2CA01C]/20 flex items-center justify-center shadow-sm">
                                 <Image
-                                    src="/image.png"
+                                    src="/qb.png"
                                     alt="QuickBooks"
                                     width={32}
                                     height={32}
