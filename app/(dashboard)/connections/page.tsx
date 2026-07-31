@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useConnections } from '@/lib/hooks/useConnections';
 import { ConnectQuickBooks } from '@/components/connections/ConnectQuickBooks';
 import { ConnectionCard } from '@/components/connections/ConnectionCard';
@@ -7,13 +8,22 @@ import { Loader2, Plus, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ConnectionsPage() {
-    // 1. Pull deleteConnection out of the hook
-    const { connections, isLoading, runAudit, refetch, deleteConnection } = useConnections();
+    // 1. Pull deleteConnection and isDeleting out of the hook
+    const { connections, isLoading, runAudit, refetch, deleteConnection, isDeleting } = useConnections();
 
-    const handleDelete = async (id: string) => {
+    // 2. Track which specific connection is being deleted
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const handleDelete = (id: string) => {
         if (confirm('Are you sure you want to disconnect this QuickBooks account?')) {
-            // 2. Execute the delete mutation from TanStack Query
-            deleteConnection(id);
+            setDeletingId(id);
+
+            // Execute the delete mutation and clear the tracking state when it finishes (success or fail)
+            deleteConnection(id, {
+                onSettled: () => {
+                    setDeletingId(null);
+                }
+            });
         }
     };
 
@@ -97,6 +107,8 @@ export default function ConnectionsPage() {
                                     connection={connection}
                                     onRunAudit={runAudit}
                                     onDelete={handleDelete}
+                                    // 3. Pass true ONLY if this specific card's ID matches the deleting state
+                                    isDeleting={isDeleting && deletingId === connection.id}
                                     onView={(id) => {
                                         // Specific view logic if needed
                                     }}

@@ -18,6 +18,7 @@ interface ConnectionCardProps {
     onRunAudit: (id: string, options?: { onError?: (error: any) => void, onSuccess?: () => void }) => void;
     onDelete: (id: string) => void;
     onView: (id: string) => void;
+    isDeleting?: boolean;
 }
 
 const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -26,7 +27,8 @@ export function ConnectionCard({
     connection,
     onRunAudit,
     onDelete,
-    onView
+    onView,
+    isDeleting
 }: ConnectionCardProps) {
     const [cooldownRemaining, setCooldownRemaining] = useState(0);
     const [isStarting, setIsStarting] = useState(false);
@@ -187,7 +189,13 @@ export function ConnectionCard({
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center border border-gray-200">
-                                <Image src="/image.png" alt="QuickBooks Logo" width={20} height={20} className="opacity-70 group-hover:opacity-100 transition-opacity" />
+                                <Image
+                                    src="/qb.png"
+                                    alt="QuickBooks Logo"
+                                    width={40}
+                                    height={40}
+                                    className="opacity-70 group-hover:opacity-100 transition-opacity"
+                                />
                             </div>
                             <CardTitle className="text-xl font-bold text-gray-900 leading-tight">
                                 {connection.companyName || 'QuickBooks Company'}
@@ -291,10 +299,15 @@ export function ConnectionCard({
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    className="h-9 w-9 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all disabled:opacity-50"
                     onClick={() => onDelete(connection.id)}
+                    disabled={isDeleting}
                 >
-                    <Trash2 className="h-4 w-4" />
+                    {isDeleting ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-red-500" />
+                    ) : (
+                        <Trash2 className="h-4 w-4" />
+                    )}
                 </Button>
             </CardFooter>
         </Card>

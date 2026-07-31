@@ -29,6 +29,9 @@ export function useConnections() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['connections'] });
         },
+        onError: (error: any) => {
+            console.error('Failed to disconnect QuickBooks account:', error);
+        },
     });
 
     const auditMutation = useMutation({
@@ -64,6 +67,7 @@ export function useConnections() {
         refetch,
         deleteConnection: deleteMutation.mutate,
         isDeleting: deleteMutation.isPending,
+        deleteError: deleteMutation.error,
         runAudit: auditMutation.mutate,
         isTriggeringAudit: auditMutation.isPending,
         auditError: auditMutation.error,
