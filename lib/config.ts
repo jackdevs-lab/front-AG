@@ -15,7 +15,7 @@ export const config = {
         tokenKey: 'qbhm_token',
         tenantKey: 'qbhm_tenant',
     },
-    quickbooks: {
+    QuickBooks: {
         clientId: process.env.NEXT_PUBLIC_QB_CLIENT_ID,
         redirectUri: process.env.NEXT_PUBLIC_QB_REDIRECT_URI,
     },

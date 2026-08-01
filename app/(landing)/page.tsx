@@ -80,7 +80,7 @@ export default function LandingPage() {
                                 <div className="space-y-4">
                                     <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-zinc-900 leading-[1.1]">
                                         Professional-grade <br />
-                                        Quickbooks Health Monitor.
+                                        QuickBooks Health Monitor.
                                     </h1>
                                     <p className="text-lg text-zinc-600 max-w-lg leading-relaxed">
                                         The continuous monitoring standard for modern bookkeepers and CPAs. Audit Gen automatically scans your QuickBooks Online ledger to catch discrepancies, enforce compliance, and protect your financial integrity.

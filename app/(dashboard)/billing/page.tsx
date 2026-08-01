@@ -37,7 +37,7 @@ const FEATURES = [
     { icon: ShieldCheck, text: 'Remediation action plans per issue' },
     { icon: RefreshCw, text: 'Unlimited on-demand audit runs' }, // CHANGED: Emphasize unlimited access
     //{ icon: Bell, text: 'Real-time health score monitoring' },
-    { icon: FileText, text: 'Direct Links to Affected Entities to quickbooks' },
+    { icon: FileText, text: 'Direct Links to Affected Entities to QuickBooks' },
     //{ icon: Clock, text: 'Historical run comparison (30 days)' },
     { icon: Globe, text: 'Multi-company connection support' },
     //{ icon: Zap, text: 'Instant unlock — no setup, cancel anytime' },

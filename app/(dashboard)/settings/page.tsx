@@ -7,11 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-    Settings, 
-    Building2, 
-    Save, 
-    RefreshCw, 
+import {
+    Settings,
+    Building2,
+    Save,
+    RefreshCw,
     AlertCircle,
     CheckCircle2,
     Database,
@@ -33,7 +33,7 @@ export default function SettingsPage() {
 
     const handleSave = async (id: string) => {
         if (!newName.trim()) return;
-        
+
         try {
             updateConnection({ id, companyName: newName }, {
                 onSuccess: () => {
@@ -85,7 +85,7 @@ export default function SettingsPage() {
                                             <div className="space-y-3 min-w-[300px]">
                                                 <Label htmlFor={`name-${connection.id}`} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Display Name</Label>
                                                 <div className="flex gap-2">
-                                                    <Input 
+                                                    <Input
                                                         id={`name-${connection.id}`}
                                                         value={newName}
                                                         onChange={(e) => setNewName(e.target.value)}
@@ -93,7 +93,7 @@ export default function SettingsPage() {
                                                         placeholder="Enter new company name"
                                                         autoFocus
                                                     />
-                                                    <Button 
+                                                    <Button
                                                         onClick={() => handleSave(connection.id)}
                                                         disabled={isUpdating}
                                                         className="h-10 rounded-xl bg-primary font-black uppercase text-[10px] tracking-widest px-4 shadow-lg shadow-primary/20"
@@ -101,7 +101,7 @@ export default function SettingsPage() {
                                                         {isUpdating ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
                                                         Save
                                                     </Button>
-                                                    <Button 
+                                                    <Button
                                                         variant="ghost"
                                                         onClick={() => setEditingId(null)}
                                                         className="h-10 rounded-xl font-bold text-xs"
@@ -131,8 +131,8 @@ export default function SettingsPage() {
                                     </div>
 
                                     {editingId !== connection.id && (
-                                        <Button 
-                                            variant="outline" 
+                                        <Button
+                                            variant="outline"
                                             onClick={() => handleStartEdit(connection.id, connection.companyName)}
                                             className="rounded-xl border-gray-100 font-black uppercase text-[10px] tracking-widest h-10 hover:bg-primary/5 hover:text-primary hover:border-primary/20"
                                         >

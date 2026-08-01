@@ -7,16 +7,16 @@ import { useLatestDiagnostics } from '@/lib/hooks/useDiagnostics';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DiagnosticSummary } from '@/components/dashboard/DiagnosticSummary';
 import { Badge } from '@/components/ui/badge';
-import { 
-    FileText, 
-    Download, 
-    Calendar, 
-    ShieldCheck, 
-    Scale, 
-    Activity, 
-    Loader2, 
-    CheckCircle2, 
-    AlertTriangle, 
+import {
+    FileText,
+    Download,
+    Calendar,
+    ShieldCheck,
+    Scale,
+    Activity,
+    Loader2,
+    CheckCircle2,
+    AlertTriangle,
     XCircle,
     ArrowRight,
     Landmark,
@@ -33,9 +33,9 @@ import { useActiveConnection } from '@/lib/contexts/ConnectionContext';
 
 export default function ReportsPage() {
     const { connections, selectedConnectionId, activeConnection } = useActiveConnection();
-    
-    const { 
-        data: diagnostic, 
+
+    const {
+        data: diagnostic,
         isLoading,
         refetch
     } = useLatestDiagnostics(selectedConnectionId || '');
@@ -99,7 +99,7 @@ export default function ReportsPage() {
                         {diagnostic ? format(new Date(diagnostic.runAt), 'MMMM d, yyyy') : 'No data'}
                     </span>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-black uppercase text-muted-foreground tracking-widest leading-none">Status:</span>
                     <Badge variant={diagnostic && !diagnostic.locked && diagnostic.healthScore && diagnostic.healthScore >= 75 ? 'success' : 'warning'} className="rounded-full px-3 py-0.5 font-black text-[10px] uppercase">
@@ -130,9 +130,9 @@ export default function ReportsPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                                        <div 
-                                            className={cn("h-full transition-all duration-1000", cat.color)} 
-                                            style={{ width: `${getScoreForCategory(cat.name)}%` }} 
+                                        <div
+                                            className={cn("h-full transition-all duration-1000", cat.color)}
+                                            style={{ width: `${getScoreForCategory(cat.name)}%` }}
                                         />
                                     </div>
                                 </CardContent>
@@ -188,8 +188,8 @@ export default function ReportsPage() {
                                     <div className="mt-8 p-4 rounded-2xl bg-primary/5 border border-primary/20 space-y-2">
                                         <p className="text-xs font-bold text-primary uppercase tracking-widest">Expert Advice</p>
                                         <p className="text-sm text-primary/80 leading-relaxed italic">
-                                            {diagnostic.healthScore > 80 
-                                                ? "Your financials look solid. Minor hygiene issues can be resolved manually in QuickBooks." 
+                                            {diagnostic.healthScore > 80
+                                                ? "Your financials look solid. Minor hygiene issues can be resolved manually in QuickBooks."
                                                 : "Immediate action recommended. Focus on critical ledger imbalances to ensure reporting accuracy."}
                                         </p>
                                     </div>
@@ -215,8 +215,8 @@ export default function ReportsPage() {
                         </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3">
-                        <Button 
-                            size="lg" 
+                        <Button
+                            size="lg"
                             className="font-bold shadow-xl shadow-primary/20 gap-2"
                             asChild
                         >
@@ -234,13 +234,13 @@ export default function ReportsPage() {
                     <div className="space-y-2">
                         <h3 className="text-2xl font-black tracking-tight">Ready for Deep Analysis</h3>
                         <p className="text-muted-foreground max-w-md mx-auto">
-                            We haven't performed a diagnostic run for this connection yet. 
+                            We haven't performed a diagnostic run for this connection yet.
                             Start a Deep Scan to uncover hidden insights in your QuickBooks data.
                         </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3">
-                        <Button 
-                            size="lg" 
+                        <Button
+                            size="lg"
                             className="font-bold shadow-xl shadow-primary/20 gap-2"
                             asChild
                         >

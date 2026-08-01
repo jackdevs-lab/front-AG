@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const response = await fetch(`${config.api.baseUrl}/connections/quickbooks/callback`, {
+        const response = await fetch(`${config.api.baseUrl}/connections/QuickBooks/callback`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

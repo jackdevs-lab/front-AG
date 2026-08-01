@@ -1,4 +1,4 @@
-// app/quickbooks/page.tsx
+// app/QuickBooks/page.tsx
 import { CheckCircle2, ShieldCheck, ArrowRight, Database } from 'lucide-react';
 import Link from 'next/link';
 import { SignUpButton } from '@clerk/nextjs';

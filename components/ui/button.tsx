@@ -15,7 +15,7 @@ const buttonVariants = cva(
                 secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
                 ghost: 'hover:bg-accent hover:text-accent-foreground',
                 link: 'text-primary underline-offset-4 hover:underline',
-                quickbooks: 'bg-[#2CA01C] text-white hover:bg-[#238016]',
+                QuickBooks: 'bg-[#2CA01C] text-white hover:bg-[#238016]',
             },
             size: {
                 default: 'h-10 px-4 py-2',
