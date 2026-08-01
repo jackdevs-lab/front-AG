@@ -188,22 +188,6 @@ export function ConnectionCard({
                 <div className="flex items-start justify-between">
                     <div className="space-y-1">
                         <div className="flex items-center gap-3">
-                            {/* 
-      COMPLIANT LOGO CONTAINER
-      - Rectangular width to accommodate the full logo
-      - Padding (p-1.5) provides the mandatory clear space
-      - shrink-0 prevents flexbox from squishing the logo
-      - Removed all opacity/hover alterations
-    */}
-                            <div className="h-9 w-[110px] shrink-0 rounded-lg bg-white flex items-center justify-center border border-gray-200 p-1.5 shadow-sm">
-                                <Image
-                                    src="/qb.png"
-                                    alt="QuickBooks"
-                                    width={90}
-                                    height={24}
-                                    className="object-contain w-full h-full"
-                                />
-                            </div>
                             <CardTitle className="text-xl font-bold text-gray-900 leading-tight truncate">
                                 {connection.companyName || 'QuickBooks Company'}
                             </CardTitle>
