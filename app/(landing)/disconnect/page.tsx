@@ -37,13 +37,13 @@ export default async function QuickBooksDisconnectedPage() {
                     {/* Conditionally render based on the server auth state */}
                     {userId ? (
                         <Link
-                            href="/dashboard/connections"
+                            href="/connections"
                             className="inline-flex items-center justify-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-md font-medium hover:bg-zinc-800 transition-colors"
                         >
                             Return to Connections <ArrowRight className="h-4 w-4" />
                         </Link>
                     ) : (
-                        <SignInButton mode="modal" forceRedirectUrl="/dashboard/connections">
+                        <SignInButton mode="modal" forceRedirectUrl="/connections">
                             <button className="inline-flex items-center justify-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-md font-medium hover:bg-zinc-800 transition-colors">
                                 Sign In to Audit Gen <ArrowRight className="h-4 w-4" />
                             </button>
