@@ -118,7 +118,7 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
                                 <div className="relative w-full max-w-[250px] h-[40px]">
                                     {/* Ensure this points to the exact asset downloaded from Intuit */}
                                     <Image
-                                        src="/button.svg"
+                                        src="/C2QB_green_btn_tall_hover_2x.png"
                                         alt="Connect to QuickBooks"
                                         fill
                                         className="object-contain"
