@@ -4,16 +4,22 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@clerk/nextjs';
 
 export default function DisconnectPage() {
     const router = useRouter();
+    const { getToken } = useAuth();
 
     useEffect(() => {
-        // Automatically trigger backend safety-net cleanup on load
         async function triggerCleanup() {
             try {
+                const token = await getToken();
                 await fetch('/api/connections/verify-and-sync', {
                     method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     credentials: 'include'
                 });
             } catch (err) {
