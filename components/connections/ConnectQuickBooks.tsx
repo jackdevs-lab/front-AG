@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { connectionsApi } from '@/lib/api/connections';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface ConnectQuickBooksProps {
     onConnected?: () => void;
@@ -42,13 +42,13 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent_60%)] pointer-events-none" />
 
             <Card className="relative border-none bg-white/95 backdrop-blur-sm rounded-[14px]">
-                <CardHeader className="pb-4">
+                <CardHeader className="pb-6">
                     <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
                         {/* 
-                          UPDATED LOGO CONTAINER
+                          COMPLIANT LOGO CONTAINER
                           - Rectangular shape to fit the full logo
                           - Padding respects the "clear space" margin rules 
-                          - Removed hover:scale to strictly avoid altering the logo
+                          - No hover states altering the logo
                         */}
                         <div className="relative flex items-center justify-center min-w-[140px] h-[60px] p-3 rounded-xl bg-white border border-[#2CA01C]/20 shadow-sm">
                             <Image
@@ -71,37 +71,20 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="grid gap-3">
-                        {[
-                            { icon: <RefreshCw className="h-4 w-4 text-[#2CA01C]" />, text: "On Demand Data Sync", desc: "Always up-to-date financials" },
-                            { icon: <RefreshCw className="h-4 w-4 text-blue-500" />, text: "20+ Rule Diagnostics", desc: "Find errors before they happen" },
-                            { icon: <RefreshCw className="h-4 w-4 text-orange-500" />, text: "Health Scoring", desc: "Track your fiscal fitness daily" }
-                        ].map((item, i) => (
-                            <div key={i} className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100 group/item">
-                                <div className="mt-1 p-1.5 rounded-lg bg-gray-50 group-hover/item:bg-white flex items-center justify-center transition-colors shadow-sm">
-                                    {item.icon}
-                                </div>
-                                <div>
-                                    <p className="text-sm font-semibold text-gray-800">{item.text}</p>
-                                    <p className="text-xs text-gray-500">{item.desc}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
 
+                <CardContent className="space-y-4">
                     {error && (
-                        <div className="p-4 text-sm bg-red-50 border border-red-100 text-red-600 rounded-xl animate-in fade-in slide-in-from-top-2">
+                        <div className="p-4 text-sm bg-red-50 border border-red-100 text-red-600 rounded-xl animate-in fade-in slide-in-from-top-2 mb-4">
                             <p className="font-semibold mb-1">Connection Error</p>
                             {error}
                         </div>
                     )}
 
-                    <div className="space-y-4">
+                    <div className="flex flex-col items-center space-y-4">
                         {/* 
-                          UPDATED BUTTON
-                          - Replaces custom CSS with the mandatory Intuit button graphic
-                          - Wrap in a standard HTML button for click/accessibility handling
+                          COMPLIANT BUTTON
+                          - Uses the mandatory Intuit button graphic
+                          - Standard HTML button for click/accessibility handling
                         */}
                         <button
                             onClick={handleConnect}
@@ -127,7 +110,7 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
                             )}
                         </button>
 
-                        <p className="text-[10px] items-center text-gray-400 text-center px-4 leading-relaxed">
+                        <p className="text-[10px] items-center text-gray-400 text-center px-4 leading-relaxed max-w-sm">
                             Secured with industry-standard encryption. By connecting, you agree to our
                             <span className="text-[#2CA01C] cursor-pointer hover:underline ml-1">Data Authorization Policy</span>.
                         </p>
