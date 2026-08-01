@@ -6,9 +6,10 @@ import { ConnectQuickBooks } from '@/components/connections/ConnectQuickBooks';
 import { ConnectionCard } from '@/components/connections/ConnectionCard';
 import { Loader2, Plus, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export default async function ConnectionsPage() {
+
+export default function ConnectionsPage() {
     // 1. Pull deleteConnection and isDeleting out of the hook
     const { connections, isLoading, runAudit, refetch, deleteConnection, isDeleting } = useConnections();
 
