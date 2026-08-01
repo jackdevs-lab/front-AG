@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { connectionsApi } from '@/lib/api/connections';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Loader2, RefreshCw } from 'lucide-react';
@@ -44,22 +43,27 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
 
             <Card className="relative border-none bg-white/95 backdrop-blur-sm rounded-[14px]">
                 <CardHeader className="pb-4">
-                    <div className="flex items-center gap-4">
-                        <div className="relative group/logo">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-[#2CA01C] to-[#1D6E11] rounded-xl blur opacity-25 group-hover/logo:opacity-50 transition duration-300" />
-                            <div className="relative w-14 h-14 rounded-xl bg-white border border-[#2CA01C]/20 flex items-center justify-center shadow-sm">
-                                <Image
-                                    src="/qb.png"
-                                    alt="QuickBooks"
-                                    width={32}
-                                    height={32}
-                                    className="transition-transform duration-500 group-hover:scale-110"
-                                />
-                            </div>
+                    <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+                        {/* 
+                          UPDATED LOGO CONTAINER
+                          - Rectangular shape to fit the full logo
+                          - Padding respects the "clear space" margin rules 
+                          - Removed hover:scale to strictly avoid altering the logo
+                        */}
+                        <div className="relative flex items-center justify-center min-w-[140px] h-[60px] p-3 rounded-xl bg-white border border-[#2CA01C]/20 shadow-sm">
+                            <Image
+                                src="/qb.png"
+                                alt="Intuit QuickBooks"
+                                width={120}
+                                height={36}
+                                className="object-contain"
+                                priority
+                            />
                         </div>
+
                         <div className="space-y-1">
                             <CardTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
-                                Connect QuickBooks
+                                Connect to QuickBooks
                             </CardTitle>
                             <CardDescription className="text-gray-500 font-medium tracking-tight">
                                 Unleash real-time financial insights
@@ -94,20 +98,34 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
                     )}
 
                     <div className="space-y-4">
-                        <Button
+                        {/* 
+                          UPDATED BUTTON
+                          - Replaces custom CSS with the mandatory Intuit button graphic
+                          - Wrap in a standard HTML button for click/accessibility handling
+                        */}
+                        <button
                             onClick={handleConnect}
                             disabled={isLoading}
-                            className="w-full h-12 text-base font-bold text-white transition-all transform hover:scale-[1.02] active:scale-[0.98] bg-gradient-to-r from-[#2CA01C] to-[#1D6E11] hover:from-[#1D6E11] hover:to-[#2CA01C] border-none shadow-lg shadow-[#2CA01C]/20"
+                            aria-label="Connect to QuickBooks"
+                            className="w-full flex justify-center items-center transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isLoading ? (
-                                <>
+                                <div className="flex h-[40px] w-full max-w-[250px] items-center justify-center bg-[#2CA01C] rounded-md text-white font-medium shadow-sm">
                                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                    Establishing Connection...
-                                </>
+                                    Connecting...
+                                </div>
                             ) : (
-                                'Connect with QuickBooks'
+                                <div className="relative w-full max-w-[250px] h-[40px]">
+                                    {/* Ensure this points to the exact asset downloaded from Intuit */}
+                                    <Image
+                                        src="/C2QB_green_btn_lg_default.png"
+                                        alt="Connect to QuickBooks"
+                                        fill
+                                        className="object-contain"
+                                    />
+                                </div>
                             )}
-                        </Button>
+                        </button>
 
                         <p className="text-[10px] items-center text-gray-400 text-center px-4 leading-relaxed">
                             Secured with industry-standard encryption. By connecting, you agree to our
