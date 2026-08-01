@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { connectionsApi } from '@/lib/api/connections';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldCheck } from 'lucide-react';
 
 interface ConnectQuickBooksProps {
     onConnected?: () => void;
@@ -37,13 +37,14 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
     };
 
     return (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#2CA01C] to-[#1D6E11] p-1 shadow-2xl transition-all duration-300 hover:shadow-[0_20px_50px_rgba(44,160,28,0.3)] group">
+        <div className="relative w-full max-w-lg mx-auto overflow-hidden rounded-2xl bg-gradient-to-br from-[#2CA01C] to-[#1D6E11] p-1 shadow-2xl transition-all duration-300 hover:shadow-[0_20px_50px_rgba(44,160,28,0.3)] group">
             {/* Glossy Overlay */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent_60%)] pointer-events-none" />
 
             <Card className="relative border-none bg-white/95 backdrop-blur-sm rounded-[14px]">
-                <CardHeader className="pb-6">
-                    <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
+                <CardHeader className="pt-8 pb-6 px-6 sm:px-10">
+                    {/* Strictly flex-col to break the line between logo and text */}
+                    <div className="flex flex-col items-center gap-5 text-center">
                         {/* 
                           COMPLIANT LOGO CONTAINER
                           - Rectangular shape to fit the full logo
@@ -61,30 +62,39 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
                             />
                         </div>
 
-                        <div className="space-y-1">
-                            <CardTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
+                        <div className="space-y-1.5">
+                            <CardTitle className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
                                 Connect to QuickBooks
                             </CardTitle>
-                            <CardDescription className="text-gray-500 font-medium tracking-tight">
+                            <CardDescription className="text-base text-gray-500 font-medium tracking-tight">
                                 Unleash real-time financial insights
                             </CardDescription>
                         </div>
                     </div>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
+                {/* Increased bottom and side padding */}
+                <CardContent className="space-y-6 pb-8 px-6 sm:px-10">
+
+                    {/* Clean, singular punchline added here */}
+                    <div className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-blue-50/50 border border-blue-100/50">
+                        <ShieldCheck className="h-5 w-5 text-blue-500 shrink-0" />
+                        <span className="text-sm font-semibold text-gray-700">
+                            Detect errors before they happen with automated diagnostics.
+                        </span>
+                    </div>
+
                     {error && (
-                        <div className="p-4 text-sm bg-red-50 border border-red-100 text-red-600 rounded-xl animate-in fade-in slide-in-from-top-2 mb-4">
+                        <div className="p-4 text-sm bg-red-50 border border-red-100 text-red-600 rounded-xl animate-in fade-in slide-in-from-top-2">
                             <p className="font-semibold mb-1">Connection Error</p>
                             {error}
                         </div>
                     )}
 
-                    <div className="flex flex-col items-center space-y-4">
+                    <div className="flex flex-col items-center space-y-5 pt-2">
                         {/* 
                           COMPLIANT BUTTON
                           - Uses the mandatory Intuit button graphic
-                          - Standard HTML button for click/accessibility handling
                         */}
                         <button
                             onClick={handleConnect}
@@ -110,7 +120,7 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
                             )}
                         </button>
 
-                        <p className="text-[10px] items-center text-gray-400 text-center px-4 leading-relaxed max-w-sm">
+                        <p className="text-[11px] items-center text-gray-400 text-center px-4 leading-relaxed max-w-sm">
                             Secured with industry-standard encryption. By connecting, you agree to our
                             <span className="text-[#2CA01C] cursor-pointer hover:underline ml-1">Data Authorization Policy</span>.
                         </p>
@@ -118,5 +128,9 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
                 </CardContent>
             </Card>
         </div>
+
+
+
+
     );
 }
