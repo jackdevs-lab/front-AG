@@ -176,14 +176,13 @@ function DashboardContent({ router, error, setError }: any) {
         const calculateRemaining = () => {
             const lastUpdate = new Date(activeConnection.updatedAt).getTime();
             const elapsed = Date.now() - lastUpdate;
-            const remaining = Math.max(0, 5 * 60 * 1000 - elapsed);
+            const remaining = Math.max(0, 60 * 1000 - elapsed); // <-- CHANGED TO 60 SECONDS
             setCooldownRemaining(remaining);
         };
         calculateRemaining();
         const interval = setInterval(calculateRemaining, 1000);
         return () => clearInterval(interval);
     }, [activeConnection?.updatedAt]);
-
     const isOnCooldown = cooldownRemaining > 0;
 
     const handleRunAudit = () => {
