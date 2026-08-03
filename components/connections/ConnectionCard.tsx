@@ -21,7 +21,7 @@ interface ConnectionCardProps {
     isDeleting?: boolean;
 }
 
-const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
+const COOLDOWN_MS = 1 * 60 * 1000; // 5 minutes in milliseconds
 
 export function ConnectionCard({
     connection,
