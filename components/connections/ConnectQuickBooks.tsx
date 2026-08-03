@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { connectionsApi } from '@/lib/api/connections';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { Loader2, ShieldCheck } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface ConnectQuickBooksProps {
     onConnected?: () => void;
@@ -37,100 +36,68 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
     };
 
     return (
-        <div className="relative w-full max-w-lg mx-auto overflow-hidden rounded-2xl bg-gradient-to-br from-[#2CA01C] to-[#1D6E11] p-1 shadow-2xl transition-all duration-300 hover:shadow-[0_20px_50px_rgba(44,160,28,0.3)] group">
-            {/* Glossy Overlay */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent_60%)] pointer-events-none" />
+        <div className="w-full max-w-sm mx-auto flex flex-col items-center justify-center py-8">
+            {/* Clean, unboxed logo */}
+            <div className="mb-6">
+                <Image
+                    src="/qb.png"
+                    alt="Intuit QuickBooks"
+                    width={130}
+                    height={40}
+                    className="object-contain"
+                    priority
+                />
+            </div>
 
-            <Card className="relative border-none bg-white/95 backdrop-blur-sm rounded-[14px]">
-                <CardHeader className="pt-8 pb-6 px-6 sm:px-10">
-                    {/* Strictly flex-col to break the line between logo and text */}
-                    <div className="flex flex-col items-center gap-5 text-center">
-                        {/* 
-                          COMPLIANT LOGO CONTAINER
-                          - Rectangular shape to fit the full logo
-                          - Padding respects the "clear space" margin rules 
-                          - No hover states altering the logo
-                        */}
-                        <div className="relative flex items-center justify-center min-w-[140px] h-[60px] p-3 rounded-xl bg-white border border-[#2CA01C]/20 shadow-sm">
-                            <Image
-                                src="/qb.png"
-                                alt="Intuit QuickBooks"
-                                width={120}
-                                height={36}
-                                className="object-contain"
-                                priority
-                            />
-                        </div>
+            {/* Sharp, corporate typography */}
+            <div className="text-center space-y-2 mb-8">
+                <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">
+                    Connect to QuickBooks
+                </h2>
+                <p className="text-sm text-slate-500 font-medium">
+                    Unleash real-time financial insights
+                </p>
+            </div>
 
-                        <div className="space-y-1.5">
-                            <CardTitle className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
-                                Connect to QuickBooks
-                            </CardTitle>
-                            <CardDescription className="text-base text-gray-500 font-medium tracking-tight">
-                                Unleash real-time financial insights
-                            </CardDescription>
-                        </div>
+            {/* Minimalist error state */}
+            {error && (
+                <div className="w-full p-3 mb-6 text-sm text-red-600 bg-red-50 border border-red-100 rounded text-left">
+                    <span className="font-semibold">Error:</span> {error}
+                </div>
+            )}
+
+            {/* Connection Button */}
+            <button
+                onClick={handleConnect}
+                disabled={isLoading}
+                aria-label="Connect to QuickBooks"
+                className="w-full flex justify-center items-center transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed mb-5"
+            >
+                {isLoading ? (
+                    <div className="flex h-[40px] w-full max-w-[250px] items-center justify-center bg-[#2CA01C] rounded text-white text-sm font-medium shadow-sm">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Connecting...
                     </div>
-                </CardHeader>
-
-                {/* Increased bottom and side padding */}
-                <CardContent className="space-y-6 pb-8 px-6 sm:px-10">
-
-                    {/* Clean, singular punchline added here */}
-                    <div className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-blue-50/50 border border-blue-100/50">
-                        <ShieldCheck className="h-5 w-5 text-blue-500 shrink-0" />
-                        <span className="text-sm font-semibold text-gray-700">
-                            Detect errors before they happen with automated diagnostics.
-                        </span>
+                ) : (
+                    <div className="relative w-full max-w-[250px] h-[40px]">
+                        {/* Intuit's required button graphic */}
+                        <Image
+                            src="/C2QB_green_btn_tall_hover_2x.png"
+                            alt="Connect to QuickBooks"
+                            fill
+                            className="object-contain"
+                        />
                     </div>
+                )}
+            </button>
 
-                    {error && (
-                        <div className="p-4 text-sm bg-red-50 border border-red-100 text-red-600 rounded-xl animate-in fade-in slide-in-from-top-2">
-                            <p className="font-semibold mb-1">Connection Error</p>
-                            {error}
-                        </div>
-                    )}
-
-                    <div className="flex flex-col items-center space-y-5 pt-2">
-                        {/* 
-                          COMPLIANT BUTTON
-                          - Uses the mandatory Intuit button graphic
-                        */}
-                        <button
-                            onClick={handleConnect}
-                            disabled={isLoading}
-                            aria-label="Connect to QuickBooks"
-                            className="w-full flex justify-center items-center transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isLoading ? (
-                                <div className="flex h-[40px] w-full max-w-[250px] items-center justify-center bg-[#2CA01C] rounded-md text-white font-medium shadow-sm">
-                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                    Connecting...
-                                </div>
-                            ) : (
-                                <div className="relative w-full max-w-[250px] h-[40px]">
-                                    {/* Ensure this points to the exact asset downloaded from Intuit */}
-                                    <Image
-                                        src="/C2QB_green_btn_tall_hover_2x.png"
-                                        alt="Connect to QuickBooks"
-                                        fill
-                                        className="object-contain"
-                                    />
-                                </div>
-                            )}
-                        </button>
-
-                        <p className="text-[11px] items-center text-gray-400 text-center px-4 leading-relaxed max-w-sm">
-                            Secured with industry-standard encryption. By connecting, you agree to our
-                            <span className="text-[#2CA01C] cursor-pointer hover:underline ml-1">Data Authorization Policy</span>.
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
+            {/* Muted footer text */}
+            <p className="text-xs text-slate-400 text-center leading-relaxed">
+                Secured with industry-standard encryption. By connecting, you agree to our
+                <span className="text-slate-600 cursor-pointer hover:underline ml-1">
+                    Data Authorization Policy
+                </span>.
+            </p>
         </div>
-
-
-
-
     );
 }
