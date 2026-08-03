@@ -1,12 +1,11 @@
-// apps/web/components/dashboard/SyncStatusCard.tsx
 'use client';
+
 import React, { useEffect } from 'react';
 import { Clock, ShieldCheck, Loader2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
 import { format, isValid } from 'date-fns';
 
-// Define types for props
 interface Metrics {
     lastSync?: Date | string | null;
 }
@@ -20,13 +19,12 @@ interface Props {
     latestDiagnostics: LatestDiagnostics | null;
     isLoading: boolean;
     isAuditing: boolean;
-    onRunAudit: () => void; // Function to trigger the audit
+    onRunAudit: () => void;
     isOnCooldown: boolean;
     cooldownRemaining: number;
-    isLocked: boolean; // NEW PROP: Passed from parent based on subscription status
+    isLocked: boolean;
 }
 
-// Safe formatting helper to prevent UI crashes
 function safeFormatDate(dateValue: any, formatPattern: string, fallback: string) {
     if (!dateValue) return fallback;
     const parsedDate = dateValue instanceof Date ? dateValue : new Date(dateValue);
@@ -42,12 +40,11 @@ export function SyncStatusCard({
     onRunAudit,
     isOnCooldown,
     cooldownRemaining,
-    isLocked // Receive the isLocked prop
+    isLocked
 }: Props) {
     const isButtonDisabled: boolean = isAuditing || isOnCooldown || isLocked;
 
     useEffect(() => {
-        console.log(' [SyncStatusCard] isAuditing changed to:', isAuditing);
         if (!isAuditing) {
             console.warn(' [SyncStatusCard] Parent turned off isAuditing! Check the parent component.');
         }
@@ -60,7 +57,6 @@ export function SyncStatusCard({
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     };
 
-    // Determine raw date target safely
     const rawDate = metrics?.lastSync ?? latestDiagnostics?.runAt;
     const formattedTime = safeFormatDate(rawDate, 'h:mm a', 'Never');
     const formattedDate = safeFormatDate(rawDate, 'MMM d, yyyy', 'No data available');
@@ -68,73 +64,60 @@ export function SyncStatusCard({
     return (
         <div
             className={cn(
-                "bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden",
+                "bg-white border border-slate-200 rounded-xl p-6 shadow-sm min-h-[160px] flex flex-col justify-between",
                 isLoading && "animate-pulse"
             )}
         >
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-slate-50 border border-slate-100">
-                        <Clock className="h-3.5 w-3.5 text-slate-500" />
-                    </div>
-                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest leading-none">
-                        Sync Status
-                    </span>
-                </div>
+            <div className="flex items-center gap-2 text-slate-600 mb-4">
+                <Clock className="h-4 w-4" />
+                <h3 className="text-sm font-medium">Sync Status</h3>
             </div>
 
-            <div className="flex flex-col gap-1">
-                <span className="text-xl font-black text-slate-900 tracking-tight">
+            <div className="flex flex-col gap-1 mb-6">
+                <span className="text-2xl font-semibold tracking-tight text-slate-900">
                     {isLocked ? "Subscription Required" : formattedTime}
                 </span>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    {isLocked ? "Unlock full features with an active subscription" : formattedDate}
+                <span className="text-xs text-slate-500">
+                    {isLocked ? "Unlock features with an active subscription" : formattedDate}
                 </span>
             </div>
 
-            <div className="pt-2 flex items-center gap-2">
-                <Button
-                    onClick={() => {
-                        console.log(' [SyncStatusCard] Run Audit button clicked!');
-                        if (!isButtonDisabled) {
-                            onRunAudit();
-                        }
-                    }}
-                    disabled={isButtonDisabled}
-                    className={cn(
-                        "w-full h-10 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all active:scale-95 shadow-lg",
-                        isLocked
-                            ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
-                            : isOnCooldown
-                                // Changed cooldown button style to look clean and standard instead of loud yellow
-                                ? "bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed"
-                                : "bg-[hsl(199,89%,48%)] hover:bg-[hsl(199,89%,58%)] text-white shadow-blue-100"
-                    )}
-                >
-                    {isAuditing ? (
-                        <>
-                            <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                            Auditing...
-                        </>
-                    ) : isLocked ? (
-                        <>
-                            <Lock className="mr-2 h-3.5 w-3.5" />
-                            Subscription Required
-                        </>
-                    ) : isOnCooldown ? (
-                        <>
-                            <Clock className="mr-2 h-3.5 w-3.5" />
-                            Wait {formatTime(cooldownRemaining)}
-                        </>
-                    ) : (
-                        <>
-                            <ShieldCheck className="mr-2 h-3.5 w-3.5" />
-                            Run Audit
-                        </>
-                    )}
-                </Button>
-                {/* The absolute yellow overlay div has been completely removed */}
-            </div>
+            <Button
+                onClick={() => {
+                    if (!isButtonDisabled) {
+                        onRunAudit();
+                    }
+                }}
+                disabled={isButtonDisabled}
+                className={cn(
+                    "w-full h-10 rounded-lg text-sm font-medium transition-all shadow-none",
+                    isLocked || isOnCooldown
+                        ? "bg-slate-100 text-slate-500 hover:bg-slate-100 border border-slate-200"
+                        : "bg-blue-600 hover:bg-blue-700 text-white"
+                )}
+            >
+                {isAuditing ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Auditing...
+                    </>
+                ) : isLocked ? (
+                    <>
+                        <Lock className="mr-2 h-4 w-4" />
+                        Locked
+                    </>
+                ) : isOnCooldown ? (
+                    <>
+                        <Clock className="mr-2 h-4 w-4" />
+                        Wait {formatTime(cooldownRemaining)}
+                    </>
+                ) : (
+                    <>
+                        <ShieldCheck className="mr-2 h-4 w-4" />
+                        Run Audit
+                    </>
+                )}
+            </Button>
         </div>
     );
 }

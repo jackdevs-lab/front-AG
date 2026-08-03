@@ -47,91 +47,58 @@ export function ImpactScopeCard({ metrics, isLoading, error }: Props) {
     return (
         <article
             className={cn(
-                "bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden transition-all duration-200 flex flex-col justify-between",
+                "bg-white border rounded-xl p-6 shadow-sm flex flex-col justify-between min-h-[160px]",
                 isLoading && "animate-pulse select-none pointer-events-none",
-                isError && "border-amber-200 bg-amber-50/10"
+                isError ? "border-red-200" : "border-slate-200"
             )}
             aria-busy={isLoading}
             aria-label="Impact scope and exposure summary"
         >
-            {/* Header section */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div
-                        className={cn(
-                            "p-1.5 rounded-lg border",
-                            isError ? "bg-amber-50 border-amber-100 text-amber-600" : "bg-slate-50 border-slate-100 text-slate-500"
-                        )}
-                        aria-hidden="true"
-                    >
-                        {isError ? <AlertTriangle className="h-3.5 w-3.5" /> : <Users className="h-3.5 w-3.5" />}
-                    </div>
-                    <span className={cn(
-                        "text-xs font-black uppercase tracking-widest leading-none",
-                        isError ? "text-amber-700" : "text-slate-500"
-                    )}>
-                        Impact Scope
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2 text-slate-600">
+                    {isError ? <AlertTriangle className="h-4 w-4 text-red-500" /> : <Users className="h-4 w-4" />}
+                    <h3 className="text-sm font-medium">Impact Scope</h3>
+                </div>
+                {metrics?.isTeaser && (
+                    <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <Lock className="h-3 w-3" />
+                        Preview
                     </span>
+                )}
+            </div>
+
+            <div className="space-y-4">
+                <div className="flex flex-col">
+                    {isLoading ? (
+                        <div className="h-8 w-16 bg-slate-100 rounded mb-1" />
+                    ) : (
+                        <span className={cn(
+                            "text-3xl font-semibold tracking-tight",
+                            isError ? "text-red-600" : "text-slate-900"
+                        )}>
+                            {isError || hasNoData ? '—' : (metrics?.totalEntities ?? 0)}
+                        </span>
+                    )}
+                    <span className="text-xs text-slate-500">Affected Entities</span>
                 </div>
 
-                {metrics?.isTeaser && (
-                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-100">
-                        <Lock className="h-2.5 w-2.5" />
-                        Preview Mode
-                    </span>
-                )}
-            </div>
-
-            {/* Entity Count - Always Visible */}
-            <div className="flex items-baseline gap-1.5">
-                {isLoading ? (
-                    <div className="h-10 w-24 bg-slate-200 rounded-lg my-0.5" />
-                ) : (
-                    <span className={cn(
-                        "text-4xl font-mono font-black tracking-tighter tabular-nums",
-                        isError ? "text-amber-600" : "text-slate-900"
-                    )}>
-                        {isError || hasNoData ? '—' : (metrics?.totalEntities ?? 0)}
-                    </span>
-                )}
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    Affected Entities
-                </span>
-            </div>
-
-            {/* Financial Exposure - Always Visible */}
-            <div className="pt-1">
-                <div className={cn(
-                    "border rounded-xl p-3 flex items-center justify-between transition-colors",
-                    isError ? "bg-amber-50/30 border-amber-100/70" : "bg-rose-50/50 border-rose-100"
-                )}>
-                    <div className="flex flex-col gap-1">
-                        <span className={cn(
-                            "text-xs font-bold uppercase tracking-wider",
-                            isError ? "text-amber-600" : "text-rose-600"
-                        )}>
-                            Estimated Exposure
-                        </span>
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                    <div className="flex flex-col">
+                        <span className="text-xs text-slate-500 mb-0.5">Estimated Exposure</span>
                         {isLoading ? (
-                            <div className="h-6 w-32 bg-rose-200/60 rounded-md my-0.5" />
+                            <div className="h-5 w-24 bg-slate-100 rounded" />
                         ) : (
                             <span className={cn(
-                                "text-lg font-mono font-black leading-none",
-                                isError ? "text-amber-600/80" : "text-rose-700"
+                                "text-sm font-semibold",
+                                isError ? "text-red-600" : "text-slate-900"
                             )}>
                                 {isError ? 'Unavailable' : hasNoData ? '—' : formatCurrency(metrics?.totalExposure)}
                             </span>
                         )}
                     </div>
-                    <div
-                        className={cn(
-                            "p-1.5 rounded-lg text-rose-500",
-                            isError ? "bg-amber-100/40 text-amber-500" : "bg-rose-100/50 text-rose-500"
-                        )}
-                        aria-hidden="true"
-                    >
-                        <TrendingDown className="h-5 w-5" />
-                    </div>
+                    {!isError && !hasNoData && !isLoading && (
+                        <TrendingDown className="h-4 w-4 text-slate-400" />
+                    )}
                 </div>
             </div>
         </article>

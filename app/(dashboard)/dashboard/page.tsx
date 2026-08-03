@@ -13,7 +13,7 @@ import {
 } from '@/lib/hooks/useDiagnostics';
 import { useActiveConnection } from '@/lib/contexts/ConnectionContext';
 import { ConnectQuickBooks } from '@/components/connections/ConnectQuickBooks';
-import { AlertCircle, Database } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { calculateTrend } from '@/lib/utils/dashboard-helpers';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api/client';
@@ -75,17 +75,14 @@ function DashboardInner() {
 
 function NoConnectionsView({ onConnected }: { onConnected: () => void }) {
     return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
-            <div className="p-8 bg-white rounded-[40px] shadow-xl shadow-slate-100 border border-slate-50 relative group">
-                <div className="absolute inset-0 bg-gradient-to-br from-[hsl(199,89%,48%)]/5 to-transparent rounded-[40px] opacity-0 group-hover:opacity-100 transition-opacity" />
-                <Database className="w-20 h-20 text-slate-200 group-hover:text-[hsl(199,89%,48%)]/20 transition-colors relative z-10" />
-            </div>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8">
             <div className="text-center space-y-3">
                 <h2 className="text-3xl font-black tracking-tight text-slate-900">Connect to Get Started</h2>
                 <p className="text-sm text-slate-500 max-w-sm mx-auto font-medium leading-relaxed">
-                    Link your QuickBooks Online account to begin on demand  ledger health monitoring and risk detection.
+                    Link your QuickBooks Online account to begin on-demand ledger health monitoring and risk detection.
                 </p>
             </div>
+
             <ConnectQuickBooks onConnected={onConnected} />
         </div>
     );
