@@ -19,21 +19,54 @@ function DisconnectContent() {
 
     useEffect(() => {
         async function triggerCleanup() {
+            if (!realmId) return;
+
             try {
                 const token = await getToken();
-                if (!token) return;
 
-                await fetch('/api/connections/verify-and-sync', {
+                if (!token) {
+                    console.error('No authentication token available');
+                    return;
+                }
+
+                const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+                if (!rawApiUrl) {
+                    console.error('NEXT_PUBLIC_API_URL is not configured');
+                    return;
+                }
+
+                // 1. Sanitize the base URL by stripping any trailing slashes
+                const cleanApiUrl = rawApiUrl.replace(/\/+$/, '');
+
+                // 2. Construct the exact endpoint
+                const endpoint = `${cleanApiUrl}/api/connections/verify-and-sync`;
+
+                // Debugging log so you can see exactly what the frontend is calling
+                console.log('Sending disconnect verification to:', endpoint);
+
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': `Bearer ${token}`,
                     },
                     body: JSON.stringify({ realmId }),
-                    credentials: 'include'
                 });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(
+                        'Disconnect verification failed:',
+                        response.status,
+                        errorText
+                    );
+                }
             } catch (err) {
-                console.error('Failed to purge disconnected state:', err);
+                console.error(
+                    'Failed to verify disconnected QuickBooks connection:',
+                    err
+                );
             }
         }
 
