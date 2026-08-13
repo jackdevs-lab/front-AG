@@ -19,21 +19,48 @@ function DisconnectContent() {
 
     useEffect(() => {
         async function triggerCleanup() {
+            if (!realmId) return;
+
             try {
                 const token = await getToken();
-                if (!token) return;
 
-                await fetch('/api/connections/verify-and-sync', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ realmId }),
-                    credentials: 'include'
-                });
+                if (!token) {
+                    console.error('No authentication token available');
+                    return;
+                }
+
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+                if (!apiUrl) {
+                    console.error('NEXT_PUBLIC_API_URL is not configured');
+                    return;
+                }
+
+                const response = await fetch(
+                    `${apiUrl}/api/connections/verify-and-sync`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ realmId }),
+                    }
+                );
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(
+                        'Disconnect verification failed:',
+                        response.status,
+                        errorText
+                    );
+                }
             } catch (err) {
-                console.error('Failed to purge disconnected state:', err);
+                console.error(
+                    'Failed to verify disconnected QuickBooks connection:',
+                    err
+                );
             }
         }
 
