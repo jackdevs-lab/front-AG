@@ -12,61 +12,38 @@ import {
     RefreshCw
 } from 'lucide-react';
 
+
 function DisconnectContent() {
-    const { getToken } = useAuth();
+    const { isLoaded, isSignedIn, getToken } = useAuth();
     const searchParams = useSearchParams();
     const realmId = searchParams.get('realmId');
 
     useEffect(() => {
+        if (!isLoaded || !isSignedIn) return;
         async function triggerCleanup() {
-            if (!realmId) return;
-
             try {
                 const token = await getToken();
+                if (!token) return;
 
-                if (!token) {
-                    console.error('No authentication token available');
-                    return;
-                }
-
-                const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-                if (!rawApiUrl) {
-                    console.error('NEXT_PUBLIC_API_URL is not configured');
-                    return;
-                }
-
-                // 1. Sanitize the base URL by stripping any trailing slashes
+                const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
                 const cleanApiUrl = rawApiUrl.replace(/\/+$/, '');
-
-                // 2. Construct the exact endpoint
                 const endpoint = `${cleanApiUrl}/api/connections/verify-and-sync`;
 
-                // Debugging log so you can see exactly what the frontend is calling
-                console.log('Sending disconnect verification to:', endpoint);
-
-                const response = await fetch(endpoint, {
+                const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
+                        Authorization: `Bearer ${token}`,
                     },
-                    body: JSON.stringify({ realmId }),
+                    body: JSON.stringify({ realmId: realmId || undefined }),
                 });
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error(
-                        'Disconnect verification failed:',
-                        response.status,
-                        errorText
-                    );
+                if (!res.ok) {
+                    console.error('Disconnect cleanup failed with status:', res.status);
                 }
-            } catch (err) {
-                console.error(
-                    'Failed to verify disconnected QuickBooks connection:',
-                    err
-                );
+            }
+            catch (error) {
+                console.error('Disconnect cleanup failed:', error);
             }
         }
 
