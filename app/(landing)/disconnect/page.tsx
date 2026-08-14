@@ -12,12 +12,14 @@ import {
     RefreshCw
 } from 'lucide-react';
 
+
 function DisconnectContent() {
-    const { getToken } = useAuth();
+    const { isLoaded, isSignedIn, getToken } = useAuth();
     const searchParams = useSearchParams();
     const realmId = searchParams.get('realmId');
 
     useEffect(() => {
+        if (!isLoaded || !isSignedIn) return;
         async function triggerCleanup() {
             try {
                 const token = await getToken();
@@ -27,16 +29,21 @@ function DisconnectContent() {
                 const cleanApiUrl = rawApiUrl.replace(/\/+$/, '');
                 const endpoint = `${cleanApiUrl}/api/connections/verify-and-sync`;
 
-                await fetch(endpoint, {
+                const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
+                        Authorization: `Bearer ${token}`,
                     },
                     body: JSON.stringify({ realmId: realmId || undefined }),
                 });
-            } catch (err) {
-                console.error('Failed to execute disconnect verification:', err);
+
+                if (!res.ok) {
+                    console.error('Disconnect cleanup failed with status:', res.status);
+                }
+            }
+            catch (error) {
+                console.error('Disconnect cleanup failed:', error);
             }
         }
 

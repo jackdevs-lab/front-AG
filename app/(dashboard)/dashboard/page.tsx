@@ -41,19 +41,61 @@ function DashboardInner() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { refetch } = useConnections();
+    const queryClient = useQueryClient();
     const { selectedConnectionId, setSelectedConnectionId } = useActiveConnection();
     const { connections } = useSuspenseConnections();
     const [error, setError] = useState<string | null>(null);
     const invalidate = useInvalidateAfterPayment();
 
+    // Verify on dashboard mount and refetch if cleanup happened
     useEffect(() => {
-        if (!selectedConnectionId && connections.length > 0) {
+        let cancelled = false;
+
+        async function verifyOnMount() {
+            try {
+                await api.post('/connections/verify-and-sync', {});
+
+                if (cancelled) return;
+
+                // Make sure the connections query updates after purge
+                await refetch();
+                // If useSuspenseConnections uses a different key, use:
+                // queryClient.invalidateQueries({ queryKey: ['connections'] });
+            } catch (err) {
+                console.error('Connection verification failed:', err);
+                // Do not reuse `error` unless you intentionally want the audit error banner
+            }
+        }
+
+        verifyOnMount();
+
+        return () => {
+            cancelled = true;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Validate selectedConnectionId against available connections
+    useEffect(() => {
+        if (connections.length === 0) {
+            if (selectedConnectionId) setSelectedConnectionId(null);
+            return;
+        }
+
+        const exists = connections.some((c) => c.id === selectedConnectionId);
+
+        if (!exists) {
             setSelectedConnectionId(connections[0].id);
         }
     }, [connections, selectedConnectionId, setSelectedConnectionId]);
 
+    // Existing payment params effect
     useEffect(() => {
-        const hasPaymentParams = searchParams.get('reference') || searchParams.get('payment') || searchParams.get('trxref');
+        const hasPaymentParams =
+            searchParams.get('reference') ||
+            searchParams.get('payment') ||
+            searchParams.get('trxref');
+
         if (hasPaymentParams && selectedConnectionId) {
             invalidate(selectedConnectionId);
             router.replace('/dashboard');
