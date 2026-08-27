@@ -1,9 +1,8 @@
 // components/dashboard/DashboardErrorFallback.tsx
 'use client';
 
-import { AlertTriangle, RefreshCw, LogIn, LifeBuoy } from 'lucide-react';
+import { AlertCircle, RefreshCw, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 
 interface ErrorFallbackProps {
     error?: Error;
@@ -18,52 +17,41 @@ export function DashboardErrorFallback({ error, resetErrorBoundary }: ErrorFallb
         error?.message?.toLowerCase().includes('401');
 
     return (
-        <div className="min-h-[70vh] flex items-center justify-center p-6">
-            <div className="max-w-md w-full bg-white rounded-2xl border border-zinc-200 p-8 text-center shadow-xs space-y-6">
-                <div className="mx-auto w-12 h-12 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
-                    <AlertTriangle className="w-6 h-6" />
+        <div className="min-h-[60vh] flex items-center justify-center p-6">
+            <div className="max-w-sm w-full bg-white rounded-3xl border border-zinc-100 p-8 text-center shadow-sm space-y-6">
+                <div className="mx-auto w-10 h-10 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-500">
+                    <AlertCircle className="w-5 h-5" />
                 </div>
 
-                <div className="space-y-2">
-                    <h2 className="text-xl font-bold text-zinc-900 tracking-tight">
-                        {isAuthOrConnectionError ? 'Session or Connection Expired' : 'Unable to Load Dashboard'}
+                <div className="space-y-1.5">
+                    <h2 className="text-base font-semibold text-zinc-900 tracking-tight">
+                        Oops, something went wrong
                     </h2>
-                    <p className="text-xs text-zinc-500 leading-relaxed max-w-sm mx-auto">
+                    <p className="text-xs text-zinc-500 leading-relaxed max-w-[260px] mx-auto">
                         {isAuthOrConnectionError
-                            ? 'Your QuickBooks or user authentication session has expired. Please log back in or reconnect to resume monitoring.'
-                            : 'An unexpected issue occurred while fetching your diagnostic metrics. You can try reloading the dashboard state.'}
+                            ? 'Please log back in again if its possible to resume your QuickBooks session.'
+                            : 'An unexpected issue occurred while loading this view. You can try refreshing the dashboard.'}
                     </p>
                 </div>
 
                 <div className="flex flex-col gap-2 pt-2">
                     {isAuthOrConnectionError ? (
                         <Button
-                            className="w-full bg-zinc-900 text-white hover:bg-zinc-800 gap-2 font-medium"
+                            className="w-full bg-zinc-900 text-white hover:bg-zinc-800 rounded-xl h-10 gap-2 text-xs font-medium shadow-sm transition-all"
                             onClick={() => window.location.href = '/sign-in'}
                         >
-                            <LogIn className="w-4 h-4" />
+                            <LogIn className="w-3.5 h-3.5" />
                             Log Back In
                         </Button>
                     ) : (
                         <Button
                             onClick={resetErrorBoundary || (() => window.location.reload())}
-                            className="w-full bg-zinc-900 text-white hover:bg-zinc-800 gap-2 font-medium"
+                            className="w-full bg-zinc-900 text-white hover:bg-zinc-800 rounded-xl h-10 gap-2 text-xs font-medium shadow-sm transition-all"
                         >
-                            <RefreshCw className="w-4 h-4" />
+                            <RefreshCw className="w-3.5 h-3.5" />
                             Reload Dashboard
                         </Button>
                     )}
-
-                    <Button
-                        variant="outline"
-                        asChild
-                        className="w-full border-zinc-200 text-zinc-700 hover:bg-zinc-50 gap-2"
-                    >
-                        <Link href="/issues">
-                            <LifeBuoy className="w-4 h-4" />
-                            Contact Support
-                        </Link>
-                    </Button>
                 </div>
             </div>
         </div>

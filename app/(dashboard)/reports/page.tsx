@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useConnections } from '@/lib/hooks/useConnections';
 import { useLatestDiagnostics } from '@/lib/hooks/useDiagnostics';
@@ -39,6 +39,45 @@ export default function ReportsPage() {
         isLoading,
         refetch
     } = useLatestDiagnostics(selectedConnectionId || '');
+
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [downloadError, setDownloadError] = useState<string | null>(null);
+
+    // Handle Server-Side PDF Stream Export Request
+    const handleDownloadPdf = async () => {
+        if (!selectedConnectionId) return;
+
+        try {
+            setIsDownloading(true);
+            setDownloadError(null);
+
+            const response = await fetch(`/api/reports/pdf/${selectedConnectionId}`, {
+                method: 'GET',
+            });
+
+            if (response.status === 402) {
+                throw new Error('Active subscription required to download PDF audit reports.');
+            }
+
+            if (!response.ok) {
+                throw new Error('Failed to generate PDF report. Please try again.');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `qb-health-report-${selectedConnectionId.slice(0, 8)}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err: any) {
+            setDownloadError(err.message || 'An unexpected error occurred.');
+        } finally {
+            setIsDownloading(false);
+        }
+    };
 
     if (isLoading) {
         return (
@@ -80,9 +119,23 @@ export default function ReportsPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <Button variant="outline" className="gap-2 font-bold" onClick={() => window.print()}>
-                        <Download className="h-4 w-4" />
-                        Export PDF
+                    <Button
+                        variant="outline"
+                        className="gap-2 font-bold"
+                        onClick={handleDownloadPdf}
+                        disabled={isDownloading || !selectedConnectionId}
+                    >
+                        {isDownloading ? (
+                            <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Generating PDF...
+                            </>
+                        ) : (
+                            <>
+                                <Download className="h-4 w-4" />
+                                Export PDF
+                            </>
+                        )}
                     </Button>
                     <Button className="gap-2 font-bold shadow-lg shadow-primary/20" onClick={() => refetch()}>
                         <Activity className="h-4 w-4" />
@@ -90,6 +143,13 @@ export default function ReportsPage() {
                     </Button>
                 </div>
             </div>
+
+            {downloadError && (
+                <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    <span>{downloadError}</span>
+                </div>
+            )}
 
             {/* Connection & Meta */}
             <div className="flex flex-wrap items-center gap-4 p-4 rounded-2xl bg-muted/30 border border-muted-foreground/10">
