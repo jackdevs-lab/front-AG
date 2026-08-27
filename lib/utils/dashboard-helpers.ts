@@ -88,19 +88,47 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
         return { findings: [], totalExposure: null, recommendation: null };
     }
 
-    const findingRegex = /^- \*\*(.*?)\*\* \(\[(?:Link \d+|View)\]\((https?:\/\/\S+)\).*?\) — (.*)$/gm;
+    // 1. Try parsing as JSON first (if the backend passes structured data stringified)
+    try {
+        const parsedJson = JSON.parse(message);
+        if (Array.isArray(parsedJson)) {
+            return {
+                findings: parsedJson.map((item: any, idx: number) => ({
+                    id: item.id || `ID-${idx}`,
+                    type: item.type || item.entityType || 'Audit Item',
+                    url: item.url || '#',
+                    description: item.description || item.message || ''
+                })),
+                totalExposure: null,
+                recommendation: null
+            };
+        }
+    } catch (e) {
+        // Not JSON, proceed with regex parsing
+    }
+
     const findings: DiagnosticFinding[] = [];
+
+    // 2. Flexible Markdown Regex fallback
+    const flexibleRegex = /^[*-]\s+(?:\*\*)?(.*?)(?:\*\*)?(?:\s+\((.*?)\))?\s*[—–-]\s*(.*)$/gm;
     let match;
 
-    while ((match = findingRegex.exec(message)) !== null) {
+    while ((match = flexibleRegex.exec(message)) !== null) {
         const titleContent = match[1] || '';
+        const linkPart = match[2] || '';
+        const description = match[3] || '';
+
         const hasSplit = titleContent.includes(' - ');
 
+        // Extract URL if linkPart contains a markdown link or raw URL
+        const urlMatch = linkPart.match(/(https?:\/\/\S+)/);
+        const url = urlMatch ? urlMatch[1] : '';
+
         findings.push({
-            id: hasSplit ? titleContent.split(' - ')[0] : 'ID',
-            type: hasSplit ? titleContent.split(' - ')[1] : 'Audit Item',
-            url: match[2] || '',
-            description: match[3] || ''
+            id: hasSplit ? titleContent.split(' - ')[0].trim() : 'ID',
+            type: hasSplit ? titleContent.split(' - ')[1].trim() : 'Audit Item',
+            url: url,
+            description: description.trim()
         });
     }
 
