@@ -88,53 +88,67 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
         return { findings: [], totalExposure: null, recommendation: null };
     }
 
-    // 1. Try parsing as JSON first (if the backend passes structured data stringified)
     try {
         const parsedJson = JSON.parse(message);
         if (Array.isArray(parsedJson)) {
             return {
                 findings: parsedJson.map((item: any, idx: number) => ({
-                    id: item.id || `ID-${idx}`,
-                    type: item.type || item.entityType || 'Audit Item',
-                    url: item.url || '#',
-                    description: item.description || item.message || ''
+                    id: String(item.id || item.txnId || `ID-${idx}`),
+                    type: String(item.type || item.entityType || 'Audit Item'),
+                    url: String(item.url || item.qbLink || '#'),
+                    description: String(item.description || item.message || '')
                 })),
                 totalExposure: null,
                 recommendation: null
             };
         }
     } catch (e) {
-        // Not JSON, proceed with regex parsing
+        // Fallback to text line parser
     }
 
     const findings: DiagnosticFinding[] = [];
 
-    // 2. Flexible Markdown Regex fallback
-    const flexibleRegex = /^[*-]\s+(?:\*\*)?(.*?)(?:\*\*)?(?:\s+\((.*?)\))?\s*[—–-]\s*(.*)$/gm;
-    let match;
+    // Split message by lines or list entries to evaluate line-by-line
+    const lines = message.split('\n');
+    let currentId = 'ID';
+    let currentType = 'Audit Item';
+    let currentUrl = '#';
+    let currentDescLines: string[] = [];
 
-    while ((match = flexibleRegex.exec(message)) !== null) {
-        const titleContent = match[1] || '';
-        const linkPart = match[2] || '';
-        const description = match[3] || '';
+    const flushFinding = () => {
+        if (currentDescLines.length > 0) {
+            const fullDesc = currentDescLines.join(' ');
+            // Try to extract an ID if embedded in text like "Invoice 1042:" or "ID: 162"
+            const idMatch = fullDesc.match(/(?:id|invoice|payment|bill|txn)[:\s#]+([a-zA-Z0-9_-]+)/i);
+            const resolvedId = idMatch ? idMatch[1] : currentId;
 
-        const hasSplit = titleContent.includes(' - ');
+            findings.push({
+                id: resolvedId,
+                type: currentType,
+                url: currentUrl,
+                description: fullDesc.replace(/\*\*QuickBooks Reference:\*\*.*$/, '').trim()
+            });
+            currentDescLines = [];
+        }
+    };
 
-        // Extract URL if linkPart contains a markdown link or raw URL
-        const urlMatch = linkPart.match(/(https?:\/\/\S+)/);
-        const url = urlMatch ? urlMatch[1] : '';
+    for (const line of lines) {
+        // Look for markdown links containing QuickBooks or URL patterns
+        const linkMatch = line.match(/\[([^\]]+)\]\((https?:\/\/\S+)\)/);
+        if (linkMatch) {
+            currentUrl = linkMatch[2];
+        }
 
-        findings.push({
-            id: hasSplit ? titleContent.split(' - ')[0].trim() : 'ID',
-            type: hasSplit ? titleContent.split(' - ')[1].trim() : 'Audit Item',
-            url: url,
-            description: description.trim()
-        });
+        // Detect list markers or item rows
+        if (line.match(/^[*-]\s+/)) {
+            flushFinding();
+            const cleanLine = line.replace(/^[*-]\s+/, '');
+            currentDescLines.push(cleanLine);
+        } else if (line.trim() !== '') {
+            currentDescLines.push(line.trim());
+        }
     }
-
-    const uniqueFindings = Array.from(
-        new Map(findings.map(f => [`${f.id}-${f.description}`, f])).values()
-    );
+    flushFinding();
 
     const exposureMatch = message.match(/(?:total exposure of|exposure:)\s*\$?([\d,.]+(?:\.\d{2})?)/i);
     const totalExposure = exposureMatch && exposureMatch[1] ? `$${exposureMatch[1]}` : null;
@@ -143,7 +157,12 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
     const recommendation = recommendationMatch && recommendationMatch[1] ? recommendationMatch[1].trim() : null;
 
     return {
-        findings: uniqueFindings,
+        findings: findings.length > 0 ? findings : [{
+            id: 'GENERAL',
+            type: 'Audit Exception',
+            url: currentUrl !== '#' ? currentUrl : '',
+            description: message
+        }],
         totalExposure,
         recommendation
     };

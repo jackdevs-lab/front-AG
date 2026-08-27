@@ -160,7 +160,26 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message }: Au
     const [searchQuery, setSearchQuery] = useState('');
 
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
+    const handleDownloadEvidence = () => {
+        const reportData = {
+            rule: ruleName || "Audit Investigation",
+            category: category || "Diagnostic Analysis",
+            totalExposure: totalExposure || "0.00",
+            findings: filteredFindings,
+            recommendation: recommendation || "None provided",
+            generatedAt: new Date().toISOString()
+        };
 
+        const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `audit-evidence-${(ruleName || 'report').toLowerCase().replace(/\s+/g, '-')}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
     const filteredFindings = findings.filter(f =>
         f.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         f.id.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
@@ -277,6 +296,7 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message }: Au
                 <div className="pt-2">
                     <Button
                         variant="outline"
+                        onClick={handleDownloadEvidence}
                         className="w-full h-10 rounded-xl border-zinc-200 font-semibold text-xs uppercase tracking-wider text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 transition-all shadow-none"
                     >
                         <FileText className="h-3.5 w-3.5 mr-2" />
