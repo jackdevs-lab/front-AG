@@ -152,34 +152,41 @@ interface AuditDrawerProps {
     ruleName?: string;
     category?: string;
     message: string;
+    connectionId?: string;
 }
 
-export function AuditDrawer({ isOpen, onClose, ruleName, category, message }: AuditDrawerProps) {
+export function AuditDrawer({ isOpen, onClose, ruleName, category, message, connectionId }: AuditDrawerProps) {
     const { findings, totalExposure, recommendation } = parseMarkdownFindings(message);
     const [copied, setCopied] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
-    const handleDownloadEvidence = () => {
-        const reportData = {
-            rule: ruleName || "Audit Investigation",
-            category: category || "Diagnostic Analysis",
-            totalExposure: totalExposure || "0.00",
-            findings: filteredFindings,
-            recommendation: recommendation || "None provided",
-            generatedAt: new Date().toISOString()
-        };
+    const handleDownloadPDF = async () => {
+        if (!connectionId) {
+            console.error('No connection ID provided for PDF download');
+            // Optionally fall back to JSON download or show alert
+            return;
+        }
 
-        const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `audit-evidence-${(ruleName || 'report').toLowerCase().replace(/\s+/g, '-')}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    };
+        try {
+            const response = await fetch(`/api/pdf/${connectionId}`);
+            if (!response.ok) {
+                throw new Error(`PDF request failed: ${response.status}`);
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `qb-health-report-${connectionId.slice(0, 8)}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error downloading PDF:', error);
+            // You might want to show a toast/notification here
+        }
+    }; 9
     const filteredFindings = findings.filter(f =>
         f.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         f.id.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
@@ -296,11 +303,11 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message }: Au
                 <div className="pt-2">
                     <Button
                         variant="outline"
-                        onClick={handleDownloadEvidence}
+                        onClick={handleDownloadPDF}
                         className="w-full h-10 rounded-xl border-zinc-200 font-semibold text-xs uppercase tracking-wider text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 transition-all shadow-none"
                     >
                         <FileText className="h-3.5 w-3.5 mr-2" />
-                        Download Audit Evidence
+                        Download Audit Report (PDF)
                     </Button>
                 </div>
             </div>

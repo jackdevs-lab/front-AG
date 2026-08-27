@@ -40,6 +40,7 @@ import { SubscriptionButton } from '@/components/billing/SubscriptionButton';
 import { cn } from '@/lib/utils/cn';
 import { DiagnosticCheck, Issue, LockedDiagnosticRun } from '@/types/diagnostic';
 import { format } from 'date-fns';
+import { connection } from 'next/server';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Safe Date Formatter
@@ -170,6 +171,7 @@ function LockedRulesOverlay({ connectionId }: { connectionId: string }) {
 interface RulesTableProps {
     checks: DiagnosticCheck[];
     issues: Issue[];
+    connectionId?: string;
 }
 
 interface LockedRulesTableProps {
@@ -184,7 +186,7 @@ function isLocked(props: Props): props is LockedRulesTableProps {
     return 'locked' in props && props.locked === true;
 }
 
-export function RulesTable(props: Props) {
+export function RulesTable(props: Props, connectionId?: string) {
     // ── Locked state — render overlay without exposing any real data ──────
     if (isLocked(props)) {
         return (
@@ -217,13 +219,13 @@ export function RulesTable(props: Props) {
 
     // ── Unlocked state — full render ─────────────────────────────────────
     const { checks = [], issues = [] } = props;
-    return <UnlockedRulesTable checks={checks} issues={issues} />;
+    return <UnlockedRulesTable checks={checks} issues={issues} connectionId={connectionId} />;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UnlockedRulesTable — full render (subscription ACTIVE)
 // ─────────────────────────────────────────────────────────────────────────────
-function UnlockedRulesTable({ checks, issues }: RulesTableProps) {
+function UnlockedRulesTable({ checks, issues, connectionId }: RulesTableProps) {
     const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -543,6 +545,7 @@ function UnlockedRulesTable({ checks, issues }: RulesTableProps) {
                 ruleName={selectedCheck?.ruleName}
                 category={selectedCheck?.category}
                 message={selectedIssues[0]?.message || selectedCheck?.message || ''}
+                connectionId={connectionId}
             />
         </div>
     );

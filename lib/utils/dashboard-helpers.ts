@@ -83,11 +83,14 @@ export interface ParsedMarkdownResult {
     recommendation: string | null;
 }
 
+// ... keep existing imports and helper functions ...
+
 export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
     if (!message) {
         return { findings: [], totalExposure: null, recommendation: null };
     }
 
+    // 1. Try JSON parsing (unchanged from original)
     try {
         const parsedJson = JSON.parse(message);
         if (Array.isArray(parsedJson)) {
@@ -103,67 +106,91 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
             };
         }
     } catch (e) {
-        // Fallback to text line parser
+        // continue to markdown parser
     }
 
+    // 2. Parse markdown format produced by formatStandardReport
     const findings: DiagnosticFinding[] = [];
+    let totalExposure: string | null = null;
+    let recommendation: string | null = null;
 
-    // Split message by lines or list entries to evaluate line-by-line
-    const lines = message.split('\n');
-    let currentId = 'ID';
-    let currentType = 'Audit Item';
-    let currentUrl = '#';
-    let currentDescLines: string[] = [];
+    // Extract total exposure from summary text
+    const exposureMatch = message.match(/cumulative exposure of\s+\$([\d,.]+)/i);
+    if (exposureMatch && exposureMatch[1]) {
+        totalExposure = `$${exposureMatch[1]}`;
+    }
 
-    const flushFinding = () => {
-        if (currentDescLines.length > 0) {
-            const fullDesc = currentDescLines.join(' ');
-            // Try to extract an ID if embedded in text like "Invoice 1042:" or "ID: 162"
-            const idMatch = fullDesc.match(/(?:id|invoice|payment|bill|txn)[:\s#]+([a-zA-Z0-9_-]+)/i);
-            const resolvedId = idMatch ? idMatch[1] : currentId;
-
-            findings.push({
-                id: resolvedId,
-                type: currentType,
-                url: currentUrl,
-                description: fullDesc.replace(/\*\*QuickBooks Reference:\*\*.*$/, '').trim()
-            });
-            currentDescLines = [];
-        }
-    };
-
-    for (const line of lines) {
-        // Look for markdown links containing QuickBooks or URL patterns
-        const linkMatch = line.match(/\[([^\]]+)\]\((https?:\/\/\S+)\)/);
-        if (linkMatch) {
-            currentUrl = linkMatch[2];
-        }
-
-        // Detect list markers or item rows
-        if (line.match(/^[*-]\s+/)) {
-            flushFinding();
-            const cleanLine = line.replace(/^[*-]\s+/, '');
-            currentDescLines.push(cleanLine);
-        } else if (line.trim() !== '') {
-            currentDescLines.push(line.trim());
+    // Extract recommendation from blockquote after "### Recommended Remediation"
+    const recSectionStart = message.indexOf('### Recommended Remediation');
+    if (recSectionStart !== -1) {
+        const afterHeading = message.substring(recSectionStart + '### Recommended Remediation'.length);
+        const blockquoteMatch = afterHeading.match(/>\s*(.*?)(?:\n|$)/);
+        if (blockquoteMatch && blockquoteMatch[1]) {
+            recommendation = blockquoteMatch[1].trim();
         }
     }
-    flushFinding();
 
-    const exposureMatch = message.match(/(?:total exposure of|exposure:)\s*\$?([\d,.]+(?:\.\d{2})?)/i);
-    const totalExposure = exposureMatch && exposureMatch[1] ? `$${exposureMatch[1]}` : null;
+    // Locate the "### Detailed Findings" section
+    const findingsHeading = '### Detailed Findings';
+    const findingsStartIdx = message.indexOf(findingsHeading);
+    if (findingsStartIdx === -1) {
+        // No findings section – return empty
+        return { findings, totalExposure, recommendation };
+    }
 
-    const recommendationMatch = message.match(/\*\*Recommendation:\*\*\s*([\s\S]*?)(?:\n\n|\n$|$)/i);
-    const recommendation = recommendationMatch && recommendationMatch[1] ? recommendationMatch[1].trim() : null;
+    const findingsContent = message.substring(findingsStartIdx + findingsHeading.length);
+    // Stop at "### Recommended Remediation" if present
+    const remediationIdx = findingsContent.indexOf('### Recommended Remediation');
+    const findingsOnly = remediationIdx !== -1 ? findingsContent.substring(0, remediationIdx) : findingsContent;
 
-    return {
-        findings: findings.length > 0 ? findings : [{
-            id: 'GENERAL',
-            type: 'Audit Exception',
-            url: currentUrl !== '#' ? currentUrl : '',
-            description: message
-        }],
-        totalExposure,
-        recommendation
-    };
+    // Match each finding block: "### <number>. <label>" followed by content until next "###"
+    const findingRegex = /###\s+\d+\.\s+([^\n]+)\n([\s\S]*?)(?=###\s+\d+\.|$)/g;
+    let match: RegExpExecArray | null;
+    let idx = 0;
+
+    while ((match = findingRegex.exec(findingsOnly)) !== null) {
+        idx++;
+        const label = match[1].trim();
+        const body = match[2];
+
+        // Extract impact details
+        let description = '';
+        const detailsMatch = body.match(/-\s+\*\*Impact Details:\*\*\s*([\s\S]*?)(?=\n\s*-\s+\*\*QuickBooks|$)/);
+        if (detailsMatch && detailsMatch[1]) {
+            description = detailsMatch[1].trim();
+        } else {
+            // Fallback: use everything except the QuickBooks line
+            const quickBooksLineIdx = body.indexOf('- **QuickBooks Reference:**');
+            if (quickBooksLineIdx !== -1) {
+                description = body.substring(0, quickBooksLineIdx).trim();
+            } else {
+                description = body.trim();
+            }
+        }
+
+        // Extract URL from markdown link
+        let url = '';
+        const linkMatch = body.match(/\[Open in QuickBooks\]\((.*?)\)/);
+        if (linkMatch && linkMatch[1]) {
+            url = linkMatch[1].trim();
+        } else {
+            // Fallback: any markdown link
+            const anyLink = body.match(/\[(.*?)\]\((https?:\/\/\S+)\)/);
+            if (anyLink && anyLink[2]) {
+                url = anyLink[2].trim();
+            }
+        }
+
+        // Generate a synthetic ID (original ID not present in markdown)
+        const id = `finding-${idx}`;
+
+        findings.push({
+            id,
+            type: label,
+            url,
+            description,
+        });
+    }
+
+    return { findings, totalExposure, recommendation };
 }

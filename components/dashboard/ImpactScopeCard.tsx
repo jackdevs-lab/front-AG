@@ -17,13 +17,13 @@ interface Props {
 }
 
 function formatCurrency(value: string | number | null | undefined): string {
-    if (value === null || value === undefined) return '$0.00';
+    if (value === null || value === undefined) return '0.00';
 
     let numericValue: number;
 
     if (typeof value === 'string') {
         const trimmed = value.trim();
-        if (!trimmed) return '$0.00';
+        if (!trimmed) return '0.00';
 
         numericValue = Number(trimmed);
         if (Number.isNaN(numericValue)) {
