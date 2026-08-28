@@ -6,6 +6,7 @@ import { Issue } from '@/types/diagnostic';
 import { AlertCircle, CheckCircle, ChevronRight, ShieldAlert, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils/cn';
+import { ParsedMarkdownResult, parseMarkdownFindings } from '@/lib/utils/dashboard-helpers';
 
 interface IssueListProps {
     issues: Issue[];
@@ -80,9 +81,46 @@ export function IssueList({
                                     </h4>
                                 </div>
 
-                                <p className="text-xs text-zinc-500 font-normal leading-relaxed max-w-2xl">
-                                    {issue.message}
-                                </p>
+                                {(() => {
+                                    const parsed = parseMarkdownFindings(issue.message);
+                                    if (parsed.findings.length > 0) {
+                                        return (
+                                            <div className="space-y-3">
+                                                {parsed.findings.map((finding, idx) => (
+                                                    <div key={idx} className="p-3 bg-zinc-50/60 border border-zinc-100 rounded-xl">
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div>
+                                                                <h5 className="text-xs font-bold text-zinc-800">{finding.type}</h5>
+                                                                <p className="text-xs text-zinc-600 mt-1 whitespace-pre-wrap">{finding.description}</p>
+                                                            </div>
+                                                        </div>
+                                                        {finding.urls.length > 0 && (
+                                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                                {finding.urls.map((url, urlIdx) => (
+                                                                    <a
+                                                                        key={urlIdx}
+                                                                        href={url}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center gap-1 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded hover:bg-slate-800 transition"
+                                                                    >
+                                                                        Open in QuickBooks {finding.urls.length > 1 ? `(${urlIdx + 1})` : ''}
+                                                                    </a>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    }
+                                    // Fallback to raw message if parser returns nothing
+                                    return (
+                                        <p className="text-xs text-zinc-500 font-normal leading-relaxed max-w-2xl">
+                                            {issue.message}
+                                        </p>
+                                    );
+                                })()}
 
                                 <div className="flex items-center gap-3 text-[11px] font-mono text-zinc-400 pt-1">
                                     <span>{issue.entityCount || (Array.isArray(issue.entities) ? issue.entities.length : 0)} affected record(s)</span>
