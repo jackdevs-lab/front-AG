@@ -152,15 +152,55 @@ interface AuditDrawerProps {
     ruleName?: string;
     category?: string;
     message: string;
+    connectionId?: string;
 }
 
-export function AuditDrawer({ isOpen, onClose, ruleName, category, message }: AuditDrawerProps) {
+export function AuditDrawer({ isOpen, onClose, ruleName, category, message, connectionId }: AuditDrawerProps) {
     const { findings, totalExposure, recommendation } = parseMarkdownFindings(message);
     const [copied, setCopied] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
+    const handleDownloadPDF = async () => {
+        if (!connectionId) {
+            alert('Cannot download PDF: Missing connection ID.');
+            return;
+        }
 
+        try {
+            // Dynamically apply the backend URL if it exists in the environment
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+            const response = await fetch(`${baseUrl}/api/pdf/${connectionId}`);
+
+            if (!response.ok) {
+                // Attempt to parse the error message sent from your Express error-handler
+                let errorMessage = `Download failed with status: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorMessage;
+                } catch (parseError) {
+                    // If response isn't JSON, fallback to standard text
+                    console.warn('Could not parse backend error as JSON');
+                }
+                throw new Error(errorMessage);
+            }
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `qb-health-report-${connectionId.slice(0, 8)}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+        } catch (error: any) {
+            console.error('Error downloading PDF:', error);
+            // Expose the error to the user (replace alert with your toast/notification component if you have one)
+            alert(`PDF Generation Failed: ${error.message}`);
+        }
+    };
     const filteredFindings = findings.filter(f =>
         f.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         f.id.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
@@ -277,10 +317,11 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message }: Au
                 <div className="pt-2">
                     <Button
                         variant="outline"
+                        onClick={handleDownloadPDF}
                         className="w-full h-10 rounded-xl border-zinc-200 font-semibold text-xs uppercase tracking-wider text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 transition-all shadow-none"
                     >
                         <FileText className="h-3.5 w-3.5 mr-2" />
-                        Download Audit Evidence
+                        Download Audit Report (PDF)
                     </Button>
                 </div>
             </div>

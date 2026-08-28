@@ -114,6 +114,7 @@ interface IssuesTableProps {
     issues: Issue[];
     filterType: string | null;
     locked?: false;
+    connectionId?: string;
 }
 
 interface LockedIssuesTableProps {
@@ -126,17 +127,17 @@ type Props = IssuesTableProps | LockedIssuesTableProps;
 
 export function IssuesTable(props: Props) {
     if (props.locked === true) {
-        return <LockedIssuesOverlay connectionId={props.connectionId} />;
+        return <LockedIssuesOverlay connectionId={props.connectionId!} />;
     }
 
-    const { issues = [], filterType } = props;
-    return <UnlockedIssuesTable issues={issues} filterType={filterType} />;
+    const { issues = [], filterType, connectionId } = props;
+    return <UnlockedIssuesTable issues={issues} filterType={filterType} connectionId={connectionId} />;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // UnlockedIssuesTable — borderless, whitespace-heavy CFO aesthetic
 // ─────────────────────────────────────────────────────────────────────────────
-function UnlockedIssuesTable({ issues, filterType }: { issues: Issue[]; filterType: string | null }) {
+function UnlockedIssuesTable({ issues, filterType, connectionId }: { issues: Issue[]; filterType: string | null, connectionId?: string }) {
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
 
     const filteredIssues = useMemo(() => {
@@ -285,6 +286,7 @@ function UnlockedIssuesTable({ issues, filterType }: { issues: Issue[]; filterTy
                     ruleName={selectedIssue.ruleName}
                     category={selectedIssue.severity}
                     message={selectedIssue.message}
+                    connectionId={connectionId}
                 />
             )}
         </div>
