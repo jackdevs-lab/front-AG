@@ -186,7 +186,7 @@ function isLocked(props: Props): props is LockedRulesTableProps {
     return 'locked' in props && props.locked === true;
 }
 
-export function RulesTable(props: Props, connectionId?: string) {
+export function RulesTable(props: Props) {
     // ── Locked state — render overlay without exposing any real data ──────
     if (isLocked(props)) {
         return (
@@ -219,6 +219,8 @@ export function RulesTable(props: Props, connectionId?: string) {
 
     // ── Unlocked state — full render ─────────────────────────────────────
     const { checks = [], issues = [] } = props;
+    const connectionId = 'connectionId' in props ? props.connectionId : undefined;
+
     return <UnlockedRulesTable checks={checks} issues={issues} connectionId={connectionId} />;
 }
 
