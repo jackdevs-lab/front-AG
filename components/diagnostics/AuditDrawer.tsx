@@ -163,16 +163,28 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message, conn
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
     const handleDownloadPDF = async () => {
         if (!connectionId) {
-            console.error('No connection ID provided for PDF download');
-            // Optionally fall back to JSON download or show alert
+            alert('Cannot download PDF: Missing connection ID.');
             return;
         }
 
         try {
-            const response = await fetch(`/api/pdf/${connectionId}`);
+            // Dynamically apply the backend URL if it exists in the environment
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+            const response = await fetch(`${baseUrl}/api/pdf/${connectionId}`);
+
             if (!response.ok) {
-                throw new Error(`PDF request failed: ${response.status}`);
+                // Attempt to parse the error message sent from your Express error-handler
+                let errorMessage = `Download failed with status: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorMessage;
+                } catch (parseError) {
+                    // If response isn't JSON, fallback to standard text
+                    console.warn('Could not parse backend error as JSON');
+                }
+                throw new Error(errorMessage);
             }
+
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -182,11 +194,13 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message, conn
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-        } catch (error) {
+
+        } catch (error: any) {
             console.error('Error downloading PDF:', error);
-            // You might want to show a toast/notification here
+            // Expose the error to the user (replace alert with your toast/notification component if you have one)
+            alert(`PDF Generation Failed: ${error.message}`);
         }
-    }; 9
+    };
     const filteredFindings = findings.filter(f =>
         f.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         f.id.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||

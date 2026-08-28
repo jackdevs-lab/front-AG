@@ -120,7 +120,6 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
         totalExposure = `$${exposureMatch[1]}`;
     }
 
-    // Extract recommendation from blockquote after "### Recommended Remediation"
     const recSectionStart = message.indexOf('### Recommended Remediation');
     if (recSectionStart !== -1) {
         const afterHeading = message.substring(recSectionStart + '### Recommended Remediation'.length);
@@ -130,20 +129,16 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
         }
     }
 
-    // Locate the "### Detailed Findings" section
     const findingsHeading = '### Detailed Findings';
     const findingsStartIdx = message.indexOf(findingsHeading);
     if (findingsStartIdx === -1) {
-        // No findings section – return empty
         return { findings, totalExposure, recommendation };
     }
 
     const findingsContent = message.substring(findingsStartIdx + findingsHeading.length);
-    // Stop at "### Recommended Remediation" if present
     const remediationIdx = findingsContent.indexOf('### Recommended Remediation');
     const findingsOnly = remediationIdx !== -1 ? findingsContent.substring(0, remediationIdx) : findingsContent;
 
-    // Match each finding block: "### <number>. <label>" followed by content until next "###"
     const findingRegex = /###\s+\d+\.\s+([^\n]+)\n([\s\S]*?)(?=###\s+\d+\.|$)/g;
     let match: RegExpExecArray | null;
     let idx = 0;
@@ -153,35 +148,31 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
         const label = match[1].trim();
         const body = match[2];
 
-        // Extract impact details
-        let description = '';
-        const detailsMatch = body.match(/-\s+\*\*Impact Details:\*\*\s*([\s\S]*?)(?=\n\s*-\s+\*\*QuickBooks|$)/);
-        if (detailsMatch && detailsMatch[1]) {
-            description = detailsMatch[1].trim();
-        } else {
-            // Fallback: use everything except the QuickBooks line
-            const quickBooksLineIdx = body.indexOf('- **QuickBooks Reference:**');
-            if (quickBooksLineIdx !== -1) {
-                description = body.substring(0, quickBooksLineIdx).trim();
-            } else {
-                description = body.trim();
-            }
-        }
-
-        // Extract URL from markdown link
         let url = '';
         const linkMatch = body.match(/\[Open in QuickBooks\]\((.*?)\)/);
         if (linkMatch && linkMatch[1]) {
             url = linkMatch[1].trim();
         } else {
-            // Fallback: any markdown link
             const anyLink = body.match(/\[(.*?)\]\((https?:\/\/\S+)\)/);
             if (anyLink && anyLink[2]) {
                 url = anyLink[2].trim();
             }
         }
 
-        // Generate a synthetic ID (original ID not present in markdown)
+        let description = body;
+
+        const impactMarker = '- **Impact Details:**';
+        if (description.includes(impactMarker)) {
+            description = description.split(impactMarker)[1];
+        }
+
+        const qbMarker = '- **QuickBooks Reference:**';
+        if (description.includes(qbMarker)) {
+            description = description.split(qbMarker)[0];
+        }
+
+        description = description.trim();
+
         const id = `finding-${idx}`;
 
         findings.push({
