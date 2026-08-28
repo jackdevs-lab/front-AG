@@ -74,6 +74,7 @@ export interface DiagnosticFinding {
     id: string;
     type: string;
     url: string;
+    urls: string[];
     description: string;
 }
 
@@ -95,15 +96,23 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
         const parsedJson = JSON.parse(message);
         if (Array.isArray(parsedJson)) {
             return {
-                findings: parsedJson.map((item: any, idx: number) => ({
-                    id: String(item.id || item.txnId || `ID-${idx}`),
-                    type: String(item.type || item.entityType || 'Audit Item'),
-                    url: String(item.url || item.qbLink || '#'),
-                    // Clean potential markdown bleed in JSON fallback
-                    description: String(item.description || item.message || '')
-                        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-                        .replace(/\*\*/g, '')
-                })),
+                findings: parsedJson.map((item: any, idx: number) => {
+                    // Extract all URLs from the JSON item (could be a single string or array)
+                    const rawUrls = Array.isArray(item.url)
+                        ? item.url
+                        : item.url || item.qbLink ? [String(item.url || item.qbLink)] : [];
+                    const urls = rawUrls.map((u: any) => String(u));
+
+                    return {
+                        id: String(item.id || item.txnId || `ID-${idx}`),
+                        type: String(item.type || item.entityType || 'Audit Item'),
+                        url: urls.length > 0 ? urls[0] : '', // first URL or empty
+                        urls,
+                        description: String(item.description || item.message || '')
+                            .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+                            .replace(/\*\*/g, '')
+                    };
+                }),
                 totalExposure: null,
                 recommendation: null
             };
@@ -129,7 +138,6 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
         const blockquoteMatch = afterHeading.match(/>\s*(.*?)(?:\n|$)/);
         if (blockquoteMatch && blockquoteMatch[1]) {
             recommendation = blockquoteMatch[1].trim();
-            // Sanitize recommendation markdown bleed
             recommendation = recommendation.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/\*\*/g, '');
         }
     }
@@ -137,6 +145,17 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
     const findingsHeading = '### Detailed Findings';
     const findingsStartIdx = message.indexOf(findingsHeading);
     if (findingsStartIdx === -1) {
+        // Fallback: if no detailed findings section, try to extract any URL from the whole message
+        const urls = extractUrls(message);
+        if (urls.length > 0) {
+            findings.push({
+                id: 'finding-1',
+                type: 'Finding',
+                url: urls[0],
+                urls,
+                description: message.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/\*\*/g, '')
+            });
+        }
         return { findings, totalExposure, recommendation };
     }
 
@@ -153,20 +172,27 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
         const label = match[1].trim();
         const body = match[2];
 
-        let url = '';
-        const linkMatch = body.match(/\[Open in QuickBooks\]\((.*?)\)/);
-        if (linkMatch && linkMatch[1]) {
-            url = linkMatch[1].trim();
-        } else {
-            const anyLink = body.match(/\[(.*?)\]\((https?:\/\/\S+)\)/);
-            if (anyLink && anyLink[2]) {
-                url = anyLink[2].trim();
+        // Extract ALL URLs from the body (Markdown links or plain URLs)
+        const urls: string[] = [];
+        const mdLinkRegex = /\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g;
+        let mdMatch;
+        while ((mdMatch = mdLinkRegex.exec(body)) !== null) {
+            urls.push(mdMatch[2].trim());
+        }
+        // If no Markdown links found, try plain URLs
+        if (urls.length === 0) {
+            const plainUrlRegex = /https?:\/\/[^\s)]+/g;
+            let plainMatch;
+            while ((plainMatch = plainUrlRegex.exec(body)) !== null) {
+                urls.push(plainMatch[0]);
             }
         }
 
+        const url = urls.length > 0 ? urls[0] : '';
+
         let description = body;
 
-        // Use regex for splits to prevent bleed if the LLM forgets a hyphen or space
+        // Remove Impact Details and QuickBooks Reference prefixes
         const impactRegex = /(?:-\s*)?\*\*Impact Details:\*\*/i;
         const impactMatch = description.match(impactRegex);
         if (impactMatch) {
@@ -179,28 +205,32 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
             description = description.substring(0, qbMatch.index!);
         }
 
-        // --- NEW FIX: Clean up remaining Markdown bleed ---
-        // 1. Remove standalone 'Open in QuickBooks' links entirely
+        // Clean remaining Markdown
         description = description.replace(/\[Open in QuickBooks\]\([^)]+\)/gi, '');
-
-        // 2. Convert standard Markdown links [Link Text](http://url) to just "Link Text"
         description = description.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
-
-        // 3. Strip bold/italic formatting that might bleed into the UI
         description = description.replace(/\*\*([^*]+)\*\*/g, '$1');
         description = description.replace(/__([^_]+)__/g, '$1');
-
         description = description.trim();
 
-        const id = `finding-${idx}`;
-
         findings.push({
-            id,
+            id: `finding-${idx}`,
             type: label,
             url,
+            urls,
             description,
         });
     }
 
     return { findings, totalExposure, recommendation };
+}
+
+// Helper to extract plain URLs (used in fallback)
+function extractUrls(text: string): string[] {
+    const urls: string[] = [];
+    const regex = /https?:\/\/[^\s)]+/g;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+        urls.push(match[0]);
+    }
+    return urls;
 }

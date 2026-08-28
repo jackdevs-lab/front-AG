@@ -1,22 +1,13 @@
-// DetailedRuleMessage — NESTED PAYWALL REMOVED
-//
-// This component previously re-checked `activeConnection.isSubscribed` to blur
-// the entity table and sidebar insight panel. That was a nested paywall: the
-// parent (RulesTable) only renders this component when subscription is ACTIVE,
-// so the inner `isSubscribed` guard was both redundant and caused a double-lock
-// bug where legitimate subscribers still saw a lock overlay.
-//
-// Fix: All `isSubscribed` conditionals and SubscriptionButton calls are removed.
-// If the modal is open, the user is entitled to see all content.
+//components/diagnostics/DetailedRuleMessage.tsx
 import React, { useState, useEffect } from 'react';
-import { 
-    X, 
-    FileText, 
-    AlertTriangle, 
-    Calendar, 
-    Hash, 
-    DollarSign, 
-    Tag, 
+import {
+    X,
+    FileText,
+    AlertTriangle,
+    Calendar,
+    Hash,
+    DollarSign,
+    Tag,
     ArrowUpDown,
     Info,
     Clock,
@@ -26,6 +17,7 @@ import {
     ShieldAlert
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { parseMarkdownFindings } from '@/lib/utils/dashboard-helpers';
 
 interface DetailedRuleMessageProps {
     message: string;
@@ -207,13 +199,18 @@ export function DetailedRuleMessage({
     const columns = getColumns(schema, entities?.[0]);
     const totalAffected = entityCount ?? (hasEntities ? entities.length : 0);
 
+    // Parse the Markdown message to extract findings and deep links
+    const parsed = parseMarkdownFindings(message);
+    const findings = parsed.findings; // array of { id, type, url, urls, description }
+    const recommendation = parsed.recommendation;
+
     const hasSegments = message.includes(' | ') || message.includes('\n');
     const segments = hasSegments ? message.split(/\n| \| /) : [];
     const previewItems = segments.slice(0, 2).map(s => s.replace(/Samples:\s*/i, '').replace(/\.\.\.\s*\(\+\d+\s*more\)$/i, '').trim()).filter(Boolean);
 
     return (
         <>
-            {/* ── Trigger ── */}
+            {/* Trigger */}
             <div
                 className="w-full mt-1 cursor-pointer group space-y-2"
                 onClick={() => setIsOpen(true)}
@@ -242,15 +239,15 @@ export function DetailedRuleMessage({
                 )}
             </div>
 
-            {/* ── Premium Modal ── */}
+            {/* Modal */}
             {isOpen && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md animate-in fade-in duration-300"
                     onClick={(e) => { if (e.target === e.currentTarget) setIsOpen(false); }}
                 >
                     <div className="bg-white rounded-3xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden border border-slate-200/60 animate-in zoom-in-95 duration-300">
-                        
-                        {/* ── Minimal Header ── */}
+
+                        {/* Header */}
                         <div className="shrink-0 px-8 py-6 flex items-center justify-between bg-white border-b border-slate-100">
                             <div className="flex items-center gap-5">
                                 <div className="p-3 bg-rose-50 rounded-2xl">
@@ -278,10 +275,10 @@ export function DetailedRuleMessage({
                         </div>
 
                         <div className="flex-1 flex overflow-hidden min-h-0 bg-white">
-                            
-                            {/* ── Summary & Table ── */}
+
+                            {/* Main Content */}
                             <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-                                
+
                                 {summary && (
                                     <div className="shrink-0 mx-8 mt-8 mb-4 border border-rose-100/50 bg-rose-50/20 rounded-2xl px-6 py-5">
                                         <div className="flex items-start gap-4">
@@ -305,6 +302,7 @@ export function DetailedRuleMessage({
                                         </h3>
                                     </div>
 
+                                    {/* If entities exist, show table; otherwise show findings list */}
                                     {hasEntities ? (
                                         <div className="rounded-2xl border border-slate-100/80 overflow-hidden shadow-sm shadow-slate-100/50">
                                             <table className="w-full text-sm border-collapse">
@@ -312,10 +310,7 @@ export function DetailedRuleMessage({
                                                     <tr className="border-b border-slate-100">
                                                         <th className="w-12 py-4 px-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-300">#</th>
                                                         {columns.map(col => (
-                                                            <th
-                                                                key={col.key}
-                                                                className={`py-4 px-4 text-[10px] font-black uppercase tracking-widest text-slate-400 ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}
-                                                            >
+                                                            <th key={col.key} className={`py-4 px-4 text-[10px] font-black uppercase tracking-widest text-slate-400 ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}>
                                                                 <div className={`flex items-center gap-2 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : ''}`}>
                                                                     {col.icon}
                                                                     {col.label}
@@ -329,10 +324,7 @@ export function DetailedRuleMessage({
                                                         <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
                                                             <td className="py-4 px-4 text-[10px] font-bold text-slate-300 tabular-nums">{String(idx + 1).padStart(2, '0')}</td>
                                                             {columns.map(col => (
-                                                                <td
-                                                                    key={col.key}
-                                                                    className={`py-4 px-4 text-xs font-medium whitespace-nowrap ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}
-                                                                >
+                                                                <td key={col.key} className={`py-4 px-4 text-xs font-medium whitespace-nowrap ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left'}`}>
                                                                     {col.render(entity)}
                                                                 </td>
                                                             ))}
@@ -341,7 +333,38 @@ export function DetailedRuleMessage({
                                                 </tbody>
                                             </table>
                                         </div>
+                                    ) : findings.length > 0 ? (
+                                        /* Render parsed findings with clickable links */
+                                        <div className="space-y-4">
+                                            {findings.map((finding, idx) => (
+                                                <div key={idx} className="p-5 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                                                    <div className="flex items-start justify-between">
+                                                        <div>
+                                                            <h4 className="text-sm font-bold text-slate-800">{finding.type}</h4>
+                                                            <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">{finding.description}</p>
+                                                        </div>
+                                                    </div>
+                                                    {finding.urls.length > 0 && (
+                                                        <div className="mt-3 flex flex-wrap gap-2">
+                                                            {finding.urls.map((url, urlIdx) => (
+                                                                <a
+                                                                    key={urlIdx}
+                                                                    href={url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-[11px] font-bold rounded-lg hover:bg-slate-800 transition-colors"
+                                                                >
+                                                                    <ExternalLink className="h-3 w-3" />
+                                                                    Open in QuickBooks {finding.urls.length > 1 ? `(${urlIdx + 1})` : ''}
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
                                     ) : (
+                                        /* Fallback to raw segments if no entities and no parsed findings */
                                         <div className="space-y-3">
                                             {segments.map((seg, i) => {
                                                 const txt = seg.replace(/Samples:\s*/i, '').replace(/\.\.\.\s*\(\+\d+\s*more\)$/i, '').trim();
@@ -358,10 +381,10 @@ export function DetailedRuleMessage({
                                 </div>
                             </div>
 
-                            {/* ── Sidebar Stats ── */}
+                            {/* Sidebar Stats (unchanged) */}
                             <div className="w-80 shrink-0 border-l border-slate-100 bg-slate-50/30 flex flex-col">
                                 <div className="p-8 space-y-10 overflow-y-auto">
-                                    
+
                                     <div className="space-y-4">
                                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Contextual Metrics</p>
                                         <div className="space-y-1 divide-y divide-slate-100 border-t border-slate-100">
@@ -392,7 +415,7 @@ export function DetailedRuleMessage({
                                     </div>
 
                                     <div className="space-y-3 pt-6 border-t border-slate-200">
-                                        <button 
+                                        <button
                                             className="w-full flex items-center justify-between bg-slate-900 hover:bg-black text-white text-[11px] font-black uppercase tracking-widest py-4 px-6 rounded-2xl transition-all active:scale-[0.98] shadow-lg shadow-slate-200"
                                             onClick={() => window.location.href = '/logs'}
                                         >
