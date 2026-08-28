@@ -1,5 +1,5 @@
 'use client';
-
+import { useParams } from 'next/navigation';
 import React, { useState } from 'react';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import {
@@ -159,27 +159,26 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message, conn
     const { findings, totalExposure, recommendation } = parseMarkdownFindings(message);
     const [copied, setCopied] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-
+    const params = useParams();
+    // Fallback to route param if prop is not provided
+    const effectiveConnectionId = connectionId || (typeof params?.connectionId === 'string' ? params.connectionId : undefined);
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
     const handleDownloadPDF = async () => {
-        if (!connectionId) {
+        if (!effectiveConnectionId) {
             alert('Cannot download PDF: Missing connection ID.');
             return;
         }
 
         try {
-            // Dynamically apply the backend URL if it exists in the environment
             const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-            const response = await fetch(`${baseUrl}/api/pdf/${connectionId}`);
+            const response = await fetch(`${baseUrl}/api/pdf/${effectiveConnectionId}`);
 
             if (!response.ok) {
-                // Attempt to parse the error message sent from your Express error-handler
                 let errorMessage = `Download failed with status: ${response.status}`;
                 try {
                     const errorData = await response.json();
                     errorMessage = errorData.message || errorMessage;
                 } catch (parseError) {
-                    // If response isn't JSON, fallback to standard text
                     console.warn('Could not parse backend error as JSON');
                 }
                 throw new Error(errorMessage);
@@ -189,7 +188,7 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message, conn
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `qb-health-report-${connectionId.slice(0, 8)}.pdf`;
+            link.download = `qb-health-report-${effectiveConnectionId.slice(0, 8)}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -197,7 +196,6 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message, conn
 
         } catch (error: any) {
             console.error('Error downloading PDF:', error);
-            // Expose the error to the user (replace alert with your toast/notification component if you have one)
             alert(`PDF Generation Failed: ${error.message}`);
         }
     };
