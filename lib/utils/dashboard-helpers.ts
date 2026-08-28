@@ -90,7 +90,7 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
         return { findings: [], totalExposure: null, recommendation: null };
     }
 
-    // 1. Try JSON parsing (unchanged from original)
+    // 1. Try JSON parsing
     try {
         const parsedJson = JSON.parse(message);
         if (Array.isArray(parsedJson)) {
@@ -99,7 +99,10 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
                     id: String(item.id || item.txnId || `ID-${idx}`),
                     type: String(item.type || item.entityType || 'Audit Item'),
                     url: String(item.url || item.qbLink || '#'),
+                    // Clean potential markdown bleed in JSON fallback
                     description: String(item.description || item.message || '')
+                        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+                        .replace(/\*\*/g, '')
                 })),
                 totalExposure: null,
                 recommendation: null
@@ -126,6 +129,8 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
         const blockquoteMatch = afterHeading.match(/>\s*(.*?)(?:\n|$)/);
         if (blockquoteMatch && blockquoteMatch[1]) {
             recommendation = blockquoteMatch[1].trim();
+            // Sanitize recommendation markdown bleed
+            recommendation = recommendation.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/\*\*/g, '');
         }
     }
 
@@ -161,15 +166,29 @@ export function parseMarkdownFindings(message: string): ParsedMarkdownResult {
 
         let description = body;
 
-        const impactMarker = '- **Impact Details:**';
-        if (description.includes(impactMarker)) {
-            description = description.split(impactMarker)[1];
+        // Use regex for splits to prevent bleed if the LLM forgets a hyphen or space
+        const impactRegex = /(?:-\s*)?\*\*Impact Details:\*\*/i;
+        const impactMatch = description.match(impactRegex);
+        if (impactMatch) {
+            description = description.substring(impactMatch.index! + impactMatch[0].length);
         }
 
-        const qbMarker = '- **QuickBooks Reference:**';
-        if (description.includes(qbMarker)) {
-            description = description.split(qbMarker)[0];
+        const qbRegex = /(?:-\s*)?\*\*QuickBooks Reference:\*\*/i;
+        const qbMatch = description.match(qbRegex);
+        if (qbMatch) {
+            description = description.substring(0, qbMatch.index!);
         }
+
+        // --- NEW FIX: Clean up remaining Markdown bleed ---
+        // 1. Remove standalone 'Open in QuickBooks' links entirely
+        description = description.replace(/\[Open in QuickBooks\]\([^)]+\)/gi, '');
+
+        // 2. Convert standard Markdown links [Link Text](http://url) to just "Link Text"
+        description = description.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
+        // 3. Strip bold/italic formatting that might bleed into the UI
+        description = description.replace(/\*\*([^*]+)\*\*/g, '$1');
+        description = description.replace(/__([^_]+)__/g, '$1');
 
         description = description.trim();
 
