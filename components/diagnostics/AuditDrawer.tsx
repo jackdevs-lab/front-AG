@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
 import { parseMarkdownFindings } from '@/lib/utils/dashboard-helpers';
+import { getToken } from '@clerk/nextjs';
 
 /**
  * Heuristically derive a concise issue title from the description and type.
@@ -165,11 +166,17 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message }: Au
 
     const handleDownloadPDF = async () => {
         try {
+            const token = await getToken();
+            if (!token) throw new Error('Authentication token unavailable');
+
             const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-            const response = await fetch(`${baseUrl}/api/pdf`, {
+            const response = await fetch(`${baseUrl}/api/reports/pdf`, {
                 method: 'GET',
-                credentials: 'include', // Important if using cookies for auth
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
             });
+
 
             if (!response.ok) {
                 let errorMessage = `Download failed with status: ${response.status}`;
