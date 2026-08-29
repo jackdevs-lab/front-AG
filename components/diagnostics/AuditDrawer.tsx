@@ -1,5 +1,5 @@
 'use client';
-import { useParams } from 'next/navigation';
+
 import React, { useState } from 'react';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import {
@@ -129,16 +129,18 @@ export function FindingItem({ id, type, url, description }: FindingItemProps) {
                             Verified Incident
                         </div>
 
-                        <a
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] font-medium transition-all shadow-sm active:scale-95 cursor-pointer"
-                        >
-                            <Activity className="h-3 w-3 text-white" />
-                            <span>QuickBooks</span>
-                            <ArrowUpRight className="h-3 w-3 opacity-90 text-white" />
-                        </a>
+                        {url && url !== '#' && (
+                            <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] font-medium transition-all shadow-sm active:scale-95 cursor-pointer"
+                            >
+                                <Activity className="h-3 w-3 text-white" />
+                                <span>QuickBooks</span>
+                                <ArrowUpRight className="h-3 w-3 opacity-90 text-white" />
+                            </a>
+                        )}
                     </div>
                 </div>
             )}
@@ -152,26 +154,22 @@ interface AuditDrawerProps {
     ruleName?: string;
     category?: string;
     message: string;
-    connectionId?: string;
 }
 
-export function AuditDrawer({ isOpen, onClose, ruleName, category, message, connectionId }: AuditDrawerProps) {
+export function AuditDrawer({ isOpen, onClose, ruleName, category, message }: AuditDrawerProps) {
     const { findings, totalExposure, recommendation } = parseMarkdownFindings(message);
     const [copied, setCopied] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const params = useParams();
-    // Fallback to route param if prop is not provided
-    const effectiveConnectionId = connectionId || (typeof params?.connectionId === 'string' ? params.connectionId : undefined);
-    const debouncedSearchQuery = useDebounce(searchQuery, 300);
-    const handleDownloadPDF = async () => {
-        if (!effectiveConnectionId) {
-            alert('Cannot download PDF: Missing connection ID.');
-            return;
-        }
 
+    const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+    const handleDownloadPDF = async () => {
         try {
             const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-            const response = await fetch(`${baseUrl}/api/pdf/${effectiveConnectionId}`);
+            const response = await fetch(`${baseUrl}/api/pdf`, {
+                method: 'GET',
+                credentials: 'include', // Important if using cookies for auth
+            });
 
             if (!response.ok) {
                 let errorMessage = `Download failed with status: ${response.status}`;
@@ -188,7 +186,7 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message, conn
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `qb-health-report-${effectiveConnectionId.slice(0, 8)}.pdf`;
+            link.download = `qb-health-report.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -199,6 +197,7 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message, conn
             alert(`PDF Generation Failed: ${error.message}`);
         }
     };
+
     const filteredFindings = findings.filter(f =>
         f.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         f.id.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
