@@ -286,7 +286,6 @@ function UnlockedIssuesTable({ issues, filterType, connectionId }: { issues: Iss
                     ruleName={selectedIssue.ruleName}
                     category={selectedIssue.severity}
                     message={selectedIssue.message}
-                    connectionId={connectionId}
                 />
             )}
         </div>

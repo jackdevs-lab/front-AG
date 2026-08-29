@@ -40,6 +40,7 @@ import { SubscriptionButton } from '@/components/billing/SubscriptionButton';
 import { cn } from '@/lib/utils/cn';
 import { DiagnosticCheck, Issue, LockedDiagnosticRun } from '@/types/diagnostic';
 import { format } from 'date-fns';
+import { useParams } from 'next/navigation';
 import { connection } from 'next/server';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -547,7 +548,6 @@ function UnlockedRulesTable({ checks, issues, connectionId }: RulesTableProps) {
                 ruleName={selectedCheck?.ruleName}
                 category={selectedCheck?.category}
                 message={selectedIssues[0]?.message || selectedCheck?.message || ''}
-                connectionId={connectionId}
             />
         </div>
     );
