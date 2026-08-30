@@ -169,7 +169,7 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message }: Au
             const token = await getToken();
             if (!token) throw new Error('Authentication token unavailable');
 
-            const baseUrl = process.env.API_URL || '';
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
             const response = await fetch(`${baseUrl}/api/reports/pdf`, {
                 method: 'GET',
                 headers: {
