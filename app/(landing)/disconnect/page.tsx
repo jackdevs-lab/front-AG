@@ -25,7 +25,7 @@ function DisconnectContent() {
                 const token = await getToken();
                 if (!token) return;
 
-                const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+                const rawApiUrl = process.env.API_URL || '';
                 const cleanApiUrl = rawApiUrl.replace(/\/+$/, '');
                 const endpoint = `${cleanApiUrl}/api/connections/verify-and-sync`;
 

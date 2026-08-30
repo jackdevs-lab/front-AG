@@ -8,7 +8,7 @@ const nextConfig = {
         optimizePackageImports: ['lucide-react'],
     },
     async rewrites() {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || '';
+        const apiUrl = process.env.API_URL?.replace(/\/+$/, '') || '';
 
         return [
             {
