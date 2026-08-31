@@ -3,14 +3,23 @@
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { TrendingUp, TrendingDown, Minus, ShieldCheck } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { cn } from '@/lib/utils/cn';
-
+function safeFormatDate(
+    dateValue: Date | string | number | null | undefined,
+    pattern: string,
+    fallback: string
+) {
+    if (!dateValue) return fallback;
+    const parsed = dateValue instanceof Date ? dateValue : new Date(dateValue);
+    if (!isValid(parsed)) return fallback;
+    return format(parsed, pattern);
+}
 interface HealthScoreCardProps {
     score: number;
     label: string;
     color: string;
-    lastUpdated: Date;
+    lastUpdated?: Date | string | number | null | undefined;
     breakdown?: {
         passedCount: number;
         warningCount: number;
@@ -131,7 +140,7 @@ export function HealthScoreCard({
             {/* Footer */}
             <div className="pt-4 mt-4 border-t border-slate-100">
                 <span className="text-xs text-slate-400">
-                    Updated {format(lastUpdated, 'MMM d, h:mm a')}
+                    Updated {safeFormatDate(lastUpdated, 'MMM d, h:mm a', '—')}
                 </span>
             </div>
         </div>

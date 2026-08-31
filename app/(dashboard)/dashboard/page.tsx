@@ -259,7 +259,7 @@ function DashboardContent({ router, error, setError }: any) {
                         score={metrics?.healthScore ?? 100}
                         label={metrics?.scoreLabel ?? 'Ready'}
                         color={metrics?.scoreColor ?? '#94a3b8'}
-                        lastUpdated={latestDiagnostics ? new Date(latestDiagnostics.runAt) : new Date()}
+                        lastUpdated={latestDiagnostics?.runAt ?? null}
                         breakdown={metrics?.scoreBreakdown}
                         trend={trend as any}
                         previousScore={previousScore}
