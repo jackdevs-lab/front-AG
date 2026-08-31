@@ -1,8 +1,9 @@
+//app/(dashboard)/billing/page.tsx
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useCheckout } from '@/lib/hooks/useSubscription';
+import { useCheckout } from '@/lib/hooks/useSubscriptionCheckout';
 import {
     ShieldCheck,
     CheckCircle2,

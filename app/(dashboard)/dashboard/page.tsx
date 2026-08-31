@@ -26,6 +26,7 @@ import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import axios from 'axios';
 import { useQueryClient } from '@tanstack/react-query';
 import { DashboardErrorFallback } from './DashboardErrorFallback';
+import { PaymentVerificationModal } from '@/components/billing/PaymentVerificationModal';
 
 export default function DashboardPage() {
     return (
@@ -36,7 +37,6 @@ export default function DashboardPage() {
         </ErrorBoundary>
     );
 }
-
 function DashboardInner() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -45,7 +45,12 @@ function DashboardInner() {
     const { selectedConnectionId, setSelectedConnectionId } = useActiveConnection();
     const { connections } = useSuspenseConnections();
     const [error, setError] = useState<string | null>(null);
-    const invalidate = useInvalidateAfterPayment();
+
+    // 1. Detect Paystack URL parameters
+    const hasPaymentParams =
+        searchParams.has('reference') ||
+        searchParams.has('payment') ||
+        searchParams.has('trxref');
 
     // Verify on dashboard mount and refetch if cleanup happened
     useEffect(() => {
@@ -54,16 +59,10 @@ function DashboardInner() {
         async function verifyOnMount() {
             try {
                 await api.post('/connections/verify-and-sync', {});
-
                 if (cancelled) return;
-
-                // Make sure the connections query updates after purge
                 await refetch();
-                // If useSuspenseConnections uses a different key, use:
-                // queryClient.invalidateQueries({ queryKey: ['connections'] });
             } catch (err) {
                 console.error('Connection verification failed:', err);
-                // Do not reuse `error` unless you intentionally want the audit error banner
             }
         }
 
@@ -83,38 +82,34 @@ function DashboardInner() {
         }
 
         const exists = connections.some((c) => c.id === selectedConnectionId);
-
         if (!exists) {
             setSelectedConnectionId(connections[0].id);
         }
     }, [connections, selectedConnectionId, setSelectedConnectionId]);
 
-    // Existing payment params effect
-    useEffect(() => {
-        const hasPaymentParams =
-            searchParams.get('reference') ||
-            searchParams.get('payment') ||
-            searchParams.get('trxref');
-
-        if (hasPaymentParams && selectedConnectionId) {
-            invalidate(selectedConnectionId);
-            router.replace('/dashboard');
-        }
-    }, [searchParams, selectedConnectionId, invalidate, router]);
+    // NOTE: The previous useEffect that intercepted payment parameters and immediately 
+    // fired router.replace('/dashboard') has been intentionally removed here. 
+    // The PaymentVerificationModal now handles invalidation and routing.
 
     if (connections.length === 0) {
         return <NoConnectionsView onConnected={refetch} />;
     }
 
     return (
-        <DashboardContent
-            router={router}
-            error={error}
-            setError={setError}
-        />
+        <>
+            {/* 2. Mount the blocking overlay if returning from Paystack checkout */}
+            {hasPaymentParams && selectedConnectionId && (
+                <PaymentVerificationModal connectionId={selectedConnectionId} />
+            )}
+
+            <DashboardContent
+                router={router}
+                error={error}
+                setError={setError}
+            />
+        </>
     );
 }
-
 function NoConnectionsView({ onConnected }: { onConnected: () => void }) {
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8">
