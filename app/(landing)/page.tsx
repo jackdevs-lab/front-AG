@@ -1,4 +1,5 @@
-import React from 'react';
+"use client";
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from "next/image";
 
@@ -16,12 +17,15 @@ import {
     Shield,
     AlertTriangle,
     Users,
-    TrendingDown
+    TrendingDown,
+    Play
 } from 'lucide-react';
 import { SignUpButton } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 
 export default function LandingPage() {
+    const [isVideoOpen, setIsVideoOpen] = useState(false);
+
     return (
         <div className="flex flex-col min-h-screen bg-white text-zinc-900 antialiased font-sans">
             {/* Navigation */}
@@ -43,7 +47,7 @@ export default function LandingPage() {
                     <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600">
 
                         <Link className="hover:text-zinc-900 transition-colors" href="/learn">
-                            Platform
+                            How it works
                         </Link>
 
 
@@ -79,11 +83,10 @@ export default function LandingPage() {
                             <div className="flex flex-col items-start space-y-8 text-left z-10">
                                 <div className="space-y-4">
                                     <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-zinc-900 leading-[1.1]">
-                                        Professional-grade <br />
-                                        QuickBooks Health Monitor.
+                                        Scale Your Firm with Automated QuickBooks Bookkeeping.
                                     </h1>
                                     <p className="text-lg text-zinc-600 max-w-lg leading-relaxed">
-                                        The continuous monitoring standard for modern bookkeepers and CPAs. Audit Gen automatically scans your QuickBooks Online ledger to catch discrepancies, enforce compliance, and protect your financial integrity.
+                                        Monitor all your clients' books from one dashboard. Audit Gen automatically scans QuickBooks Online ledgers to speed up end-of-month closing, run forensic accounting, and enforce compliance across every account.
                                     </p>
                                 </div>
 
@@ -93,11 +96,15 @@ export default function LandingPage() {
                                             Connect QuickBooks <ArrowRight className="h-4 w-4" />
                                         </Button>
                                     </SignUpButton>
-                                    <Link href="/pricing">
-                                        <Button variant="outline" size="lg" className="h-12 px-6 bg-white hover:bg-zinc-50 text-zinc-900 border-zinc-300 rounded-md font-medium transition-all w-full sm:w-auto">
-                                            See Plans
-                                        </Button>
-                                    </Link>
+                                    <Button
+                                        variant="outline"
+                                        size="lg"
+                                        className="h-12 px-6 bg-white hover:bg-zinc-50 text-zinc-900 border-zinc-300 rounded-md font-medium transition-all w-full sm:w-auto gap-2"
+                                        onClick={() => setIsVideoOpen(true)}
+                                    >
+                                        <Play className="h-4 w-4" />
+                                        Watch Demo
+                                    </Button>
                                 </div>
 
                                 <div className="flex items-center gap-6 text-sm font-medium text-zinc-500 pt-4">
@@ -238,9 +245,9 @@ export default function LandingPage() {
                                 <div className="w-10 h-10 rounded bg-zinc-100 flex items-center justify-center mb-5">
                                     <Building2 className="w-5 h-5 text-zinc-900" />
                                 </div>
-                                <h3 className="text-lg font-semibold text-zinc-900 mb-2">On Demand Data Sync</h3>
+                                <h3 className="text-lg font-semibold text-zinc-900 mb-2">Manage Multiple Clients</h3>
                                 <p className="text-sm text-zinc-600 leading-relaxed">
-                                    Connect directly to QuickBooks Online. Our engine pulls your general ledger, vendor records, and chart of accounts securely in the background.
+                                    Switch seamlessly between client entities from a single unified hub while keeping individual ledger scopes isolated.
                                 </p>
                             </div>
 
@@ -249,9 +256,9 @@ export default function LandingPage() {
                                 <div className="w-10 h-10 rounded bg-zinc-100 flex items-center justify-center mb-5">
                                     <FileText className="w-5 h-5 text-zinc-900" />
                                 </div>
-                                <h3 className="text-lg font-semibold text-zinc-900 mb-2">30+ Proprietary Rules</h3>
+                                <h3 className="text-lg font-semibold text-zinc-900 mb-2">Speed Up End-of-Month Closing</h3>
                                 <p className="text-sm text-zinc-600 leading-relaxed">
-                                    Our auditor-designed algorithms scan for unlinked payments, uncategorized income, abnormal balances, and broken reconciliations instantly.
+                                    Execute 30+ auditor-designed algorithms simultaneously to eliminate manual ledger reviews and accelerate closing cycles.
                                 </p>
                             </div>
 
@@ -260,16 +267,15 @@ export default function LandingPage() {
                                 <div className="w-10 h-10 rounded bg-zinc-100 flex items-center justify-center mb-5">
                                     <LineChart className="w-5 h-5 text-zinc-900" />
                                 </div>
-                                <h3 className="text-lg font-semibold text-zinc-900 mb-2">Executive Reporting</h3>
+                                <h3 className="text-lg font-semibold text-zinc-900 mb-2">Forensic Book Cleanup</h3>
                                 <p className="text-sm text-zinc-600 leading-relaxed">
-                                    Generate clean, client-ready QuickBooks Online Health reports. Track historical hygiene scores and demonstrate the value of your bookkeeping services.
+                                    Instantly flag unlinked payments, future-dated invoices, uncategorized income, and broken reconciliations before tax season.
                                 </p>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                {/* Data Security & Process */}
                 {/* Data Security & Remediation */}
                 <section className="py-24 bg-zinc-50 border-t border-zinc-200 overflow-hidden">
                     <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -431,6 +437,59 @@ export default function LandingPage() {
                     </nav>
                 </div>
             </footer>
+
+            {/* Video Modal */}
+            {isVideoOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-zinc-900/80 backdrop-blur-sm"
+                        onClick={() => setIsVideoOpen(false)}
+                    />
+
+                    {/* Modal Content */}
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
+                        {/* Close Button */}
+                        <button
+                            onClick={() => setIsVideoOpen(false)}
+                            className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-zinc-900/80 text-white hover:bg-zinc-900 transition-colors"
+                            aria-label="Close video"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+
+                        {/* Video Embed */}
+                        <div className="aspect-video w-full bg-black">
+                            {/* Replace with your Loom or Vimeo embed URL */}
+                            <iframe
+                                className="w-full h-full"
+                                src="https://www.youtube.com/embed/k80TgYyreJ8?si=9jubHhjNNMaA1GSQ"
+                                title="Audit Gen Demo"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            />
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-6 bg-white flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-zinc-100">
+                            <div>
+                                <h3 className="text-lg font-bold text-zinc-900">See Audit Gen in action</h3>
+                                <p className="text-sm text-zinc-500 mt-1">
+                                    Watch how fast you can scan your entire client portfolio.
+                                </p>
+                            </div>
+                            <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+                                <Button size="sm" className="bg-zinc-900 hover:bg-zinc-800 text-white rounded-md shadow-sm transition-all px-6">
+                                    Start Free Trial
+                                </Button>
+                            </SignUpButton>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
