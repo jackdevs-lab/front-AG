@@ -226,56 +226,6 @@ export default function LandingPage() {
                         </div>
                     </div>
                 </section>
-
-                {/* Features Section */}
-                <section id="platform" className="py-24 bg-white">
-                    <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                        <div className="max-w-3xl mb-16">
-                            <h2 className="text-3xl font-bold text-zinc-900 tracking-tight mb-4">
-                                Built for absolute accuracy.
-                            </h2>
-                            <p className="text-lg text-zinc-600">
-                                We designed Audit Gen to remove the guesswork from month-end close. Run comprehensive diagnostics across your QuickBooks Online files with a platform trusted by professional accountants.
-                            </p>
-                        </div>
-
-                        <div className="grid md:grid-cols-3 gap-x-8 gap-y-12">
-                            {/* Feature 1 */}
-                            <div className="flex flex-col items-start">
-                                <div className="w-10 h-10 rounded bg-zinc-100 flex items-center justify-center mb-5">
-                                    <Building2 className="w-5 h-5 text-zinc-900" />
-                                </div>
-                                <h3 className="text-lg font-semibold text-zinc-900 mb-2">Manage Multiple Clients</h3>
-                                <p className="text-sm text-zinc-600 leading-relaxed">
-                                    Switch seamlessly between client entities from a single unified hub while keeping individual ledger scopes isolated.
-                                </p>
-                            </div>
-
-                            {/* Feature 2 */}
-                            <div className="flex flex-col items-start">
-                                <div className="w-10 h-10 rounded bg-zinc-100 flex items-center justify-center mb-5">
-                                    <FileText className="w-5 h-5 text-zinc-900" />
-                                </div>
-                                <h3 className="text-lg font-semibold text-zinc-900 mb-2">Speed Up End-of-Month Closing</h3>
-                                <p className="text-sm text-zinc-600 leading-relaxed">
-                                    Execute 30+ auditor-designed algorithms simultaneously to eliminate manual ledger reviews and accelerate closing cycles.
-                                </p>
-                            </div>
-
-                            {/* Feature 3 */}
-                            <div className="flex flex-col items-start">
-                                <div className="w-10 h-10 rounded bg-zinc-100 flex items-center justify-center mb-5">
-                                    <LineChart className="w-5 h-5 text-zinc-900" />
-                                </div>
-                                <h3 className="text-lg font-semibold text-zinc-900 mb-2">Forensic Book Cleanup</h3>
-                                <p className="text-sm text-zinc-600 leading-relaxed">
-                                    Instantly flag unlinked payments, future-dated invoices, uncategorized income, and broken reconciliations before tax season.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
                 {/* Data Security & Remediation */}
                 <section className="py-24 bg-zinc-50 border-t border-zinc-200 overflow-hidden">
                     <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -387,6 +337,57 @@ export default function LandingPage() {
                         </div>
                     </div>
                 </section>
+
+                {/* Features Section */}
+                <section id="platform" className="py-24 bg-white">
+                    <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                        <div className="max-w-3xl mb-16">
+                            <h2 className="text-3xl font-bold text-zinc-900 tracking-tight mb-4">
+                                Built for absolute accuracy.
+                            </h2>
+                            <p className="text-lg text-zinc-600">
+                                We designed Audit Gen to remove the guesswork from month-end close. Run comprehensive diagnostics across your QuickBooks Online files with a platform trusted by professional accountants.
+                            </p>
+                        </div>
+
+                        <div className="grid md:grid-cols-3 gap-x-8 gap-y-12">
+                            {/* Feature 1 */}
+                            <div className="flex flex-col items-start">
+                                <div className="w-10 h-10 rounded bg-zinc-100 flex items-center justify-center mb-5">
+                                    <Building2 className="w-5 h-5 text-zinc-900" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-zinc-900 mb-2">Manage Multiple Clients</h3>
+                                <p className="text-sm text-zinc-600 leading-relaxed">
+                                    Switch seamlessly between client entities from a single unified hub while keeping individual ledger scopes isolated.
+                                </p>
+                            </div>
+
+                            {/* Feature 2 */}
+                            <div className="flex flex-col items-start">
+                                <div className="w-10 h-10 rounded bg-zinc-100 flex items-center justify-center mb-5">
+                                    <FileText className="w-5 h-5 text-zinc-900" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-zinc-900 mb-2">Speed Up End-of-Month Closing</h3>
+                                <p className="text-sm text-zinc-600 leading-relaxed">
+                                    Execute 30+ auditor-designed algorithms simultaneously to eliminate manual ledger reviews and accelerate closing cycles.
+                                </p>
+                            </div>
+
+                            {/* Feature 3 */}
+                            <div className="flex flex-col items-start">
+                                <div className="w-10 h-10 rounded bg-zinc-100 flex items-center justify-center mb-5">
+                                    <LineChart className="w-5 h-5 text-zinc-900" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-zinc-900 mb-2">Forensic Book Cleanup</h3>
+                                <p className="text-sm text-zinc-600 leading-relaxed">
+                                    Instantly flag unlinked payments, future-dated invoices, uncategorized income, and broken reconciliations before tax season.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
 
                 {/* Simple CTA */}
                 <section className="py-24 bg-white border-t border-zinc-200">
