@@ -15,19 +15,11 @@ import {
 import { AlertCircle, ChevronRight, Info, ShieldAlert, FileSearch, Lock, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────────────────────
-
 const SEVERITY_PRIORITY: Record<string, number> = {
     CRITICAL: 3,
     WARNING: 2,
     INFO: 1
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// LockedIssuesOverlay (CFO Style: Borderless, Whitespace-Driven, Premium Blur)
-// ─────────────────────────────────────────────────────────────────────────────
 
 const PLACEHOLDER_ISSUES = [
     { rule: 'Duplicate Invoices', severity: 'CRITICAL', entities: 14 },
