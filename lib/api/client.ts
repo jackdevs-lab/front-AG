@@ -19,8 +19,23 @@ export class ApiClient {
                 'Content-Type': 'application/json',
             },
         });
+        this.client.interceptors.request.use(async (config) => {
+            if (this.tokenProvider) {
+                const token = await this.tokenProvider();
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
+            }
 
-        // Request interceptor - add auth token
+            // Pass the tenant ID so your backend context knows which workspace/org this is
+            if (this.currentTenantId) {
+                config.headers['x-tenant-id'] = this.currentTenantId;
+            }
+
+            return config;
+        }, (error) => {
+            return Promise.reject(error);
+        });
         // Response interceptor - handle errors
         this.client.interceptors.response.use(
             (response) => response.data,
