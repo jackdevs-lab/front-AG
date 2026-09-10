@@ -156,9 +156,8 @@ function DashboardContent({ router, error, setError }: any) {
 
         const interval = setInterval(async () => {
             try {
-                // Replaced raw axios.get with the configured authenticated api client
-                const response = await api.get(`/connections/${selectedConnectionId}/status`);
-                const data = response.data;
+                // The api client interceptor already unwraps response.data, so assign directly
+                const data = await api.get(`/connections/${selectedConnectionId}/status`);
 
                 if (data?.syncStatus === 'ERROR') {
                     setError(data.lastSyncMessage || 'The background sync failed. Please try again.');
@@ -239,17 +238,40 @@ function DashboardContent({ router, error, setError }: any) {
 
     return (
         <div className="space-y-8 pb-20 max-w-[1600px] mx-auto">
-            {(latestError || historyError) && (
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3">
-                    <AlertCircle className="h-5 w-5 text-amber-600" />
-                    <div className="flex-1">
-                        <p className="text-xs font-black text-amber-800 uppercase tracking-widest">Diagnostics Delayed</p>
-                        <p className="text-[11px] font-medium text-amber-700 mt-0.5">
-                            The server is taking longer than expected to process diagnostics. The dashboard may show incomplete data.
-                        </p>
-                    </div>
-                </div>
-            )}
+            {/* Safely check for 401 on React Query errors to avoid false "Delayed" banners */}
+            {(() => {
+                const is401 = (err: any) => err?.response?.status === 401;
+                const isAuthError = is401(latestError) || is401(historyError);
+                const isDelayError = (latestError || historyError) && !isAuthError;
+
+                return (
+                    <>
+                        {isAuthError && (
+                            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3">
+                                <AlertCircle className="h-5 w-5 text-slate-600" />
+                                <div className="flex-1">
+                                    <p className="text-xs font-black text-slate-800 uppercase tracking-widest">Session Expired</p>
+                                    <p className="text-[11px] font-medium text-slate-700 mt-0.5">
+                                        Your authentication session has expired. Please refresh the page to continue.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {isDelayError && (
+                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-center gap-3">
+                                <AlertCircle className="h-5 w-5 text-amber-600" />
+                                <div className="flex-1">
+                                    <p className="text-xs font-black text-amber-800 uppercase tracking-widest">Diagnostics Delayed</p>
+                                    <p className="text-[11px] font-medium text-amber-700 mt-0.5">
+                                        The server is taking longer than expected to process diagnostics. The dashboard may show incomplete data.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                );
+            })()}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <ErrorBoundary>

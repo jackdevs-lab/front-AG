@@ -74,39 +74,48 @@ export function useDiagnosticStream(connectionId: string | null) {
             if (!token) return;
 
             const url = `${config.api.baseUrl}/diagnostics/stream/${connectionId}?token=${token}&tenantId=${tenantId}`;
-            eventSource = new EventSource(url);
+            const newEventSource = new EventSource(url);
 
-            eventSource.onmessage = (event) => {
+            newEventSource.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'run_completed') {
-                        // Invalidate both diagnostics and connection caches simultaneously.
-                        // React Query batches these synchronously, preventing UI flicker 
-                        // where diagnostics load but subscription status hasn't updated yet.
-                        queryClient.invalidateQueries({
-                            queryKey: ['diagnostics', 'latest', connectionId]
-                        });
-                        queryClient.invalidateQueries({
-                            queryKey: ['diagnostics', 'history', connectionId]
-                        });
-                        queryClient.invalidateQueries({
-                            queryKey: ['connections']
-                        });
-                        queryClient.invalidateQueries({
-                            queryKey: ['connection', connectionId]
-                        });
-                        queryClient.invalidateQueries({
-                            queryKey: ['connection-status', connectionId]
-                        });
+                        queryClient.invalidateQueries({ queryKey: ['diagnostics', 'latest', connectionId] });
+                        queryClient.invalidateQueries({ queryKey: ['diagnostics', 'history', connectionId] });
+                        queryClient.invalidateQueries({ queryKey: ['connections'] });
+                        queryClient.invalidateQueries({ queryKey: ['connection', connectionId] });
+                        queryClient.invalidateQueries({ queryKey: ['connection-status', connectionId] });
                     }
                 } catch (err) {
                     console.error('Failed to parse SSE data', err);
                 }
             };
 
-            eventSource.onerror = (err) => {
-                console.error('SSE Error', err);
+            newEventSource.onerror = async (err) => {
+                console.warn('SSE connection failed or token expired. Reconnecting with fresh token...');
+                newEventSource.close(); // Kill the dead connection
+
+                // Debounce slightly to prevent rapid-fire loops on permanent network loss
+                setTimeout(async () => {
+                    const freshToken = await getToken();
+                    if (!freshToken) {
+                        console.error('Failed to get fresh token for SSE reconnect');
+                        return;
+                    }
+
+                    const freshUrl = `${config.api.baseUrl}/diagnostics/stream/${connectionId}?token=${freshToken}&tenantId=${tenantId}`;
+                    const retryEventSource = new EventSource(freshUrl);
+
+                    // Re-attach the exact same handlers to the new EventSource instance
+                    retryEventSource.onmessage = newEventSource.onmessage;
+                    retryEventSource.onerror = newEventSource.onerror;
+
+                    // Update the outer closure variable so the cleanup function can close it later
+                    eventSource = retryEventSource;
+                }, 2000);
             };
+
+            eventSource = newEventSource;
         };
 
         connectStream();
