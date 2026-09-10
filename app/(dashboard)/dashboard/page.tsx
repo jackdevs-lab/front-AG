@@ -37,6 +37,14 @@ export default function DashboardPage() {
         </ErrorBoundary>
     );
 }
+// TEMPORARY DEBUG: Remove this after fixing the issue
+useEffect(() => {
+    console.log('🔍 ENV CHECK:', {
+        apiUrl: process.env.NEXT_PUBLIC_API_URL,
+        clerkKeyStart: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.substring(0, 15) + '...',
+        nodeEnv: process.env.NODE_ENV
+    });
+}, []);
 function DashboardInner() {
     const router = useRouter();
     const searchParams = useSearchParams();
