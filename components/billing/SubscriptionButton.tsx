@@ -1,3 +1,4 @@
+//components/billing/SubscriptionButton.tsx
 'use client';
 
 import React from 'react';
@@ -17,10 +18,6 @@ interface SubscriptionButtonProps {
  * Navigates to the dedicated /billing page with the connectionId as a query
  * param. The actual Paystack checkout is initiated there — this button is
  * purely a router entry-point so paywall logic stays in ONE place.
- *
- * Previously this component fired the checkout mutation directly, which caused
- * the inline popup/modal paywall anti-pattern. Routing to /billing eliminates
- * all secondary paywall checks scattered across the UI.
  */
 export function SubscriptionButton({
     connectionId,
