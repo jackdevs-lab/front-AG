@@ -21,31 +21,35 @@ export class ApiClient {
         });
 
         // Request interceptor - add auth token
-        this.client.interceptors.request.use(
-            async (config: InternalAxiosRequestConfig) => {
-                // Rely solely on Clerk token provider and currentTenantId
-                const token = this.tokenProvider ? await this.tokenProvider() : null;
-                const tenantId = this.currentTenantId;
-
-                if (token) {
-                    config.headers.Authorization = `Bearer ${token}`;
-                }
-                if (tenantId) {
-                    config.headers['x-tenant-id'] = tenantId;
-                }
-
-                return config;
-            },
-            (error: AxiosError) => Promise.reject(error)
-        );
-
         // Response interceptor - handle errors
         this.client.interceptors.response.use(
             (response) => response.data,
-            (error: AxiosError) => {
-                if (error.response?.status === 401 && typeof window !== 'undefined') {
-                    console.warn('API returned 401 Unauthorized');
+            async (error: AxiosError) => {
+                // Type assertion to allow custom _retry flag
+                const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+                if (error.response?.status === 401 && typeof window !== 'undefined' && !originalRequest._retry) {
+                    originalRequest._retry = true;
+                    console.warn('API returned 401. Attempting single token refresh retry...');
+
+                    try {
+                        if (this.tokenProvider) {
+                            const freshToken = await this.tokenProvider();
+                            if (freshToken) {
+                                originalRequest.headers.Authorization = `Bearer ${freshToken}`;
+                                return this.client(originalRequest); // Retry the request once
+                            }
+                        }
+                    } catch (retryError) {
+                        console.error('Token refresh failed on 401 retry', retryError);
+                    }
                 }
+
+                // Fallback logging if retry wasn't possible or also failed
+                if (error.response?.status === 401 && typeof window !== 'undefined') {
+                    console.warn('API returned 401 Unauthorized (Final)');
+                }
+
                 return Promise.reject(error);
             }
         );
