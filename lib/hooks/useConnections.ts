@@ -17,10 +17,15 @@ export function useConnections() {
             return response.data as Connection[];
         },
         enabled: isLoaded && isSignedIn,
-        staleTime: 0,
+        staleTime: 10000,
         refetchInterval: (query) => {
+            if (query.state.error) return false;
             const connections = query.state.data as Connection[] | undefined;
-            return connections?.some(c => c.syncStatus === 'SYNCING') ? 5000 : false;
+            return connections?.some(c => c.syncStatus === 'SYNCING') ? 10000 : false;
+        },
+        retry: (failureCount, error: any) => {
+            if (error?.response?.status === 429 || error?.status === 429) return false;
+            return failureCount < 2;
         }
     });
 
@@ -41,7 +46,7 @@ export function useConnections() {
             } catch (error: any) {
                 if (error?.response?.status === 429 || error?.status === 429) {
                     const err = new Error(error.response?.data?.message || 'Sync is currently on cooldown. Please try again later.');
-                    (err as any).status = 429; // ✅ Preserve status for the UI to detect
+                    (err as any).status = 429;
                     throw err;
                 }
                 throw error;
@@ -119,10 +124,16 @@ export function useConnectionStatus(connectionId: string, isSyncExpectedToRun?: 
         },
         enabled: !!connectionId && isLoaded && !!isSignedIn,
         refetchInterval: (query) => {
+            // ✅ Stop polling on error (429) to prevent infinite loops
+            if (query.state.error) return false;
             const currentStatus = query.state.data?.syncStatus;
-            return (currentStatus === 'SYNCING' || isSyncExpectedToRun) ? 3000 : false;
+            return (currentStatus === 'SYNCING' || isSyncExpectedToRun) ? 5000 : false;
         },
-        staleTime: 1000,
+        staleTime: 2000,
+        retry: (failureCount, error: any) => {
+            if (error?.response?.status === 429 || error?.status === 429) return false;
+            return failureCount < 2;
+        }
     });
 }
 
