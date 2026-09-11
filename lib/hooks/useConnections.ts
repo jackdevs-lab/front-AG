@@ -53,11 +53,20 @@ export function useConnections() {
             }
         },
         retry: false,
-        onSuccess: (data, connectionId) => {
-            queryClient.invalidateQueries({ queryKey: ['connections'] });
-            queryClient.invalidateQueries({ queryKey: ['connection-status', connectionId] });
-        }
     });
+
+    const runAudit = (id: string, options?: { onError?: (error: any) => void, onSuccess?: () => void }) => {
+        auditMutation.mutate(id, {
+            onError: (error) => {
+                options?.onError?.(error);
+            },
+            onSuccess: () => {
+                options?.onSuccess?.();
+                queryClient.invalidateQueries({ queryKey: ['connections'] });
+                queryClient.invalidateQueries({ queryKey: ['connection-status', id] });
+            }
+        });
+    };
 
     const updateMutation = useMutation({
         mutationFn: ({ id, companyName }: { id: string, companyName: string }) =>
@@ -75,7 +84,7 @@ export function useConnections() {
         deleteConnection: deleteMutation.mutate,
         isDeleting: deleteMutation.isPending,
         deleteError: deleteMutation.error,
-        runAudit: auditMutation.mutate,
+        runAudit,
         isTriggeringAudit: auditMutation.isPending,
         auditError: auditMutation.error,
         updateConnection: updateMutation.mutate,
@@ -124,7 +133,6 @@ export function useConnectionStatus(connectionId: string, isSyncExpectedToRun?: 
         },
         enabled: !!connectionId && isLoaded && !!isSignedIn,
         refetchInterval: (query) => {
-            // ✅ Stop polling on error (429) to prevent infinite loops
             if (query.state.error) return false;
             const currentStatus = query.state.data?.syncStatus;
             return (currentStatus === 'SYNCING' || isSyncExpectedToRun) ? 5000 : false;

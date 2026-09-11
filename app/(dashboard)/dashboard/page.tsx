@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard';
 import { DiagnosticFindingsSection } from '@/components/dashboard/DiagnosticFindingsSection';
@@ -8,8 +8,7 @@ import { useConnections, useSuspenseConnections, useConnectionStatus } from '@/l
 import {
     useLatestDiagnostics,
     useDiagnosticHistory,
-    useDiagnosticStream,
-    useInvalidateAfterPayment
+    useDiagnosticStream
 } from '@/lib/hooks/useDiagnostics';
 import { useActiveConnection } from '@/lib/contexts/ConnectionContext';
 import { ConnectQuickBooks } from '@/components/connections/ConnectQuickBooks';
@@ -24,7 +23,6 @@ import { SyncStatusCard } from '@/components/dashboard/SyncStatusCard';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import axios from 'axios';
-import { useQueryClient } from '@tanstack/react-query';
 import { DashboardErrorFallback } from './DashboardErrorFallback';
 import { PaymentVerificationModal } from '@/components/billing/PaymentVerificationModal';
 
@@ -42,7 +40,6 @@ function DashboardInner() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { refetch } = useConnections();
-    const queryClient = useQueryClient();
     const { selectedConnectionId, setSelectedConnectionId } = useActiveConnection();
     const { connections } = useSuspenseConnections();
     const [error, setError] = useState<string | null>(null);
@@ -119,7 +116,6 @@ function NoConnectionsView({ onConnected }: { onConnected: () => void }) {
 }
 
 function DashboardContent({ router, error, setError }: any) {
-    const queryClient = useQueryClient();
     const { activeConnection, selectedConnectionId } = useActiveConnection();
 
     const {
@@ -137,93 +133,18 @@ function DashboardContent({ router, error, setError }: any) {
     useDiagnosticStream(selectedConnectionId || null);
 
     const { runAudit, auditError, isTriggeringAudit } = useConnections();
-    const [isExpectingSync, setIsExpectingSync] = useState(false);
-    const preTriggerRunAtRef = useRef<string | null>(null);
 
-    // ✅ 1. Use the dedicated status hook instead of manual setInterval
-    const { data: connectionStatus } = useConnectionStatus(selectedConnectionId || '', isExpectingSync);
+    // ✅ Parent derives auditing state directly from the actual backend status hook
+    const { data: connectionStatus } = useConnectionStatus(selectedConnectionId || '', false);
+    const isAuditing = isTriggeringAudit || connectionStatus?.syncStatus === 'SYNCING';
 
-    const currentRunAt = latestDiagnostics?.runAt ? String(latestDiagnostics.runAt) : null;
-    const hasNewResults = currentRunAt !== null && currentRunAt !== preTriggerRunAtRef.current;
-    const isAuditing = isTriggeringAudit || (isExpectingSync && !hasNewResults);
-
-    const [cooldownRemaining, setCooldownRemaining] = useState(0);
-
-    useEffect(() => {
-        if (!activeConnection?.updatedAt) {
-            setCooldownRemaining(0);
-            return;
-        }
-        const calculateRemaining = () => {
-            const lastUpdate = new Date(activeConnection.updatedAt).getTime();
-            const elapsed = Date.now() - lastUpdate;
-            const remaining = Math.max(0, 60 * 1000 - elapsed);
-            setCooldownRemaining(remaining);
-        };
-        calculateRemaining();
-        const interval = setInterval(calculateRemaining, 1000);
-        return () => clearInterval(interval);
-    }, [activeConnection?.updatedAt]);
-
-    const isOnCooldown = cooldownRemaining > 0;
-
-    // ✅ 2. Reactive effect that watches the status hook and releases the button on IDLE or ERROR
-    useEffect(() => {
-        if (!isExpectingSync || !connectionStatus) return;
-
-        if (connectionStatus.syncStatus === 'ERROR') {
-            setError(connectionStatus.lastSyncMessage || 'The background sync failed. Please try again.');
-            setIsExpectingSync(false);
-            return;
-        }
-
-        if (connectionStatus.syncStatus === 'IDLE') {
-            // Worker finished! Invalidate queries to load fresh results and release the button
-            queryClient.invalidateQueries({ queryKey: ['diagnostics', 'latest', selectedConnectionId] });
-            queryClient.invalidateQueries({ queryKey: ['diagnostics', 'history', selectedConnectionId] });
-            setIsExpectingSync(false);
-            return;
-        }
-    }, [connectionStatus, isExpectingSync, selectedConnectionId, queryClient, setError]);
-
-    // ✅ 3. FAILSAFE: If the audit takes longer than 3 minutes, release the button 
-    // to prevent it from being permanently stuck due to network/rate-limit issues.
-    useEffect(() => {
-        if (!isExpectingSync) return;
-
-        const timeout = setTimeout(() => {
-            console.warn("Audit polling timeout reached. Releasing button.");
-            setIsExpectingSync(false);
-            setError("The audit is taking longer than expected. Please check the diagnostics history or try again.");
-        }, 180000); // 3 minutes
-
-        return () => clearTimeout(timeout);
-    }, [isExpectingSync, setError]);
-
-    useEffect(() => {
-        if (isExpectingSync && hasNewResults) {
-            const timer = setTimeout(() => {
-                setIsExpectingSync(false);
-            }, 500);
-            return () => clearTimeout(timer);
-        }
-    }, [isExpectingSync, hasNewResults]);
-
+    // Handle global audit errors
     useEffect(() => {
         if (auditError) {
-            const isCooldown = (auditError as any).status === 429;
-
-            if (isCooldown) {
-                setCooldownRemaining(60 * 1000);
-                setError('Sync is currently on cooldown. Please wait before trying again.');
-            } else {
-                const errorMessage = axios.isAxiosError(auditError)
-                    ? auditError.response?.data?.message || auditError.message
-                    : auditError instanceof Error ? auditError.message : 'Unknown server error';
-                setError(errorMessage);
-            }
-
-            setIsExpectingSync(false);
+            const errorMessage = axios.isAxiosError(auditError)
+                ? auditError.response?.data?.message || auditError.message
+                : auditError instanceof Error ? auditError.message : 'Unknown server error';
+            setError(errorMessage);
         }
     }, [auditError, setError]);
 
@@ -232,14 +153,6 @@ function DashboardContent({ router, error, setError }: any) {
             console.error("Diagnostics failed to load", latestError || historyError);
         }
     }, [latestError, historyError]);
-
-    const handleRunAudit = () => {
-        if (!activeConnection || isOnCooldown) return;
-        setError(null);
-        preTriggerRunAtRef.current = latestDiagnostics?.runAt ? String(latestDiagnostics.runAt) : null;
-        setIsExpectingSync(true);
-        runAudit(activeConnection.id);
-    };
 
     const { trend, previousScore } = calculateTrend(history || []);
 
@@ -320,14 +233,13 @@ function DashboardContent({ router, error, setError }: any) {
 
                 <ErrorBoundary>
                     <SyncStatusCard
-                        {...({ isLocked } as any)}
+                        connectionId={selectedConnectionId || ''}
+                        connectionUpdatedAt={activeConnection?.updatedAt || null}
                         metrics={metrics}
                         latestDiagnostics={latestDiagnostics ?? null}
                         isLoading={isLoading}
-                        isAuditing={isAuditing}
-                        onRunAudit={handleRunAudit}
-                        isOnCooldown={isOnCooldown}
-                        cooldownRemaining={cooldownRemaining}
+                        onRunAudit={runAudit}
+                        isLocked={isLocked}
                     />
                 </ErrorBoundary>
             </div>
