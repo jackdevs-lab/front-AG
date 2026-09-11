@@ -53,13 +53,7 @@ function DashboardInner() {
         searchParams.has('reference') ||
         searchParams.has('payment') ||
         searchParams.has('trxref');
-    useEffect(() => {
-        console.log('🔍 ENV CHECK:', {
-            apiUrl: process.env.NEXT_PUBLIC_API_URL,
-            clerkKeyStart: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.substring(0, 15) + '...',
-            nodeEnv: process.env.NODE_ENV
-        });
-    }, []);
+
     // Verify on dashboard mount and refetch if cleanup happened
     useEffect(() => {
         let cancelled = false;
