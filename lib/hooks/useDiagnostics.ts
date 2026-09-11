@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import { diagnosticsApi } from '@/lib/api/diagnostics';
@@ -64,19 +64,26 @@ export function useDiagnosticStream(connectionId: string | null) {
     const { getToken, orgId, userId } = useAuth();
     const tenantId = orgId || userId;
 
+    const eventSourceRef = useRef<EventSource | null>(null);
+    const reconnectAttemptsRef = useRef(0);
+    const MAX_RECONNECT_ATTEMPTS = 3;
+
     useEffect(() => {
         if (!connectionId || !tenantId) return;
 
-        let eventSource: EventSource | null = null;
-
-        const connectStream = async () => {
-            const token = await getToken();
+        const setupEventSource = async () => {
+            // Force Clerk to bypass cache and mint a fresh token
+            const token = await getToken({ skipCache: true });
             if (!token) return;
 
             const url = `${config.api.baseUrl}/diagnostics/stream/${connectionId}?token=${token}&tenantId=${tenantId}`;
-            const newEventSource = new EventSource(url);
+            const es = new EventSource(url);
 
-            newEventSource.onmessage = (event) => {
+            // Keep a ref to the current active instance for cleanup
+            eventSourceRef.current = es;
+
+            es.onmessage = (event) => {
+                reconnectAttemptsRef.current = 0; // Reset counter on successful message
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'run_completed') {
@@ -91,38 +98,30 @@ export function useDiagnosticStream(connectionId: string | null) {
                 }
             };
 
-            newEventSource.onerror = async (err) => {
-                console.warn('SSE connection failed or token expired. Reconnecting with fresh token...');
-                newEventSource.close(); // Kill the dead connection
+            es.onerror = async () => {
+                // Immediately close THIS specific instance to prevent native browser retry
+                es.close();
 
-                // Debounce slightly to prevent rapid-fire loops on permanent network loss
-                setTimeout(async () => {
-                    const freshToken = await getToken();
-                    if (!freshToken) {
-                        console.error('Failed to get fresh token for SSE reconnect');
-                        return;
-                    }
+                if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+                    console.warn('SSE reconnect limit reached. Falling back to standard 5s polling.');
+                    return;
+                }
 
-                    const freshUrl = `${config.api.baseUrl}/diagnostics/stream/${connectionId}?token=${freshToken}&tenantId=${tenantId}`;
-                    const retryEventSource = new EventSource(freshUrl);
+                reconnectAttemptsRef.current += 1;
+                console.warn(`SSE connection failed. Reconnecting... (Attempt ${reconnectAttemptsRef.current})`);
 
-                    // Re-attach the exact same handlers to the new EventSource instance
-                    retryEventSource.onmessage = newEventSource.onmessage;
-                    retryEventSource.onerror = newEventSource.onerror;
-
-                    // Update the outer closure variable so the cleanup function can close it later
-                    eventSource = retryEventSource;
+                // Clean recursive call avoids scoping/attachment bugs
+                setTimeout(() => {
+                    setupEventSource();
                 }, 2000);
             };
-
-            eventSource = newEventSource;
         };
 
-        connectStream();
+        setupEventSource();
 
         return () => {
-            if (eventSource) {
-                eventSource.close();
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
             }
         };
     }, [connectionId, tenantId, queryClient, getToken]);
