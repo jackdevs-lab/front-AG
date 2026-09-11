@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Clock, ShieldCheck, Loader2, Lock, CheckCircle, XCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
@@ -49,6 +49,9 @@ export function SyncStatusCard({
 }: Props) {
     const queryClient = useQueryClient();
 
+    // ✅ Track the original runAt when audit starts to prevent premature success messages
+    const originalRunAtRef = useRef<string | null>(null);
+
     const [isStarting, setIsStarting] = useState(false);
     const [isAuditRunning, setIsAuditRunning] = useState(false);
     const [triggerTime, setTriggerTime] = useState<number | null>(null);
@@ -58,6 +61,9 @@ export function SyncStatusCard({
 
     const { data: statusData } = useConnectionStatus(connectionId, isAuditRunning);
     const currentStatusFromHook: SyncStatus = statusData?.syncStatus || 'IDLE';
+
+    // ✅ Get current runAt for comparison
+    const currentRunAt = latestDiagnostics?.runAt ? String(latestDiagnostics.runAt) : null;
 
     useEffect(() => {
         if (!connectionUpdatedAt) {
@@ -91,13 +97,20 @@ export function SyncStatusCard({
                 setUiMessage('Audit failed. Please check diagnostics or try again.');
                 setMessageType('error');
             } else if (currentStatusFromHook === 'IDLE' && triggerTime && lastUpdate >= triggerTime) {
-                setIsAuditRunning(false);
-                setTriggerTime(null);
-                setUiMessage('Audit completed successfully!');
-                setMessageType('success');
+                // ✅ CRITICAL FIX: Only show success if runAt actually changed
+                const hasNewResults = currentRunAt !== null && currentRunAt !== originalRunAtRef.current;
+
+                if (hasNewResults) {
+                    setIsAuditRunning(false);
+                    setTriggerTime(null);
+                    setUiMessage('Audit completed successfully!');
+                    setMessageType('success');
+                    originalRunAtRef.current = null; // Reset for next audit
+                }
+                // If runAt hasn't changed yet, keep polling (don't show success yet)
             }
         }
-    }, [currentStatusFromHook, isAuditRunning, connectionUpdatedAt, triggerTime]);
+    }, [currentStatusFromHook, isAuditRunning, connectionUpdatedAt, triggerTime, currentRunAt]);
 
     const handleRunAudit = () => {
         if (isOnCooldown) {
@@ -110,11 +123,15 @@ export function SyncStatusCard({
         setUiMessage(null);
         setIsStarting(true);
 
+        // ✅ Capture the original runAt BEFORE triggering the audit
+        originalRunAtRef.current = latestDiagnostics?.runAt ? String(latestDiagnostics.runAt) : null;
+
         onRunAudit(connectionId, {
             onError: (error: any) => {
                 setIsStarting(false);
                 setIsAuditRunning(false);
                 setTriggerTime(null);
+                originalRunAtRef.current = null; // Reset on error
                 if (error?.response?.status === 429) {
                     setUiMessage(error.response.data?.message || 'Server is cooling down. Please wait.');
                     setMessageType('warning');
@@ -209,14 +226,7 @@ export function SyncStatusCard({
                     {buttonText}
                 </Button>
 
-                {isOnCooldown && (
-                    <div aria-label="Cooldown active" className="absolute inset-0 flex items-center justify-center gap-1.5 rounded-lg bg-amber-50/60 border-2 border-amber-200/70 cursor-not-allowed transition-all duration-300">
-                        <Clock className="h-3 w-3 text-amber-600 shrink-0" />
-                        <span className="text-[11px] font-black text-amber-700 tabular-nums">
-                            {formatTime(cooldownRemaining)}
-                        </span>
-                    </div>
-                )}
+                {/* ✅ REMOVED: Duplicate cooldown overlay div to fix the double countdown issue */}
             </div>
         </div>
     );
