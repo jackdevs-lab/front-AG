@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard';
 import { DiagnosticFindingsSection } from '@/components/dashboard/DiagnosticFindingsSection';
-import { useConnections, useSuspenseConnections } from '@/lib/hooks/useConnections';
+import { useConnections, useSuspenseConnections, useConnectionStatus } from '@/lib/hooks/useConnections';
 import {
     useLatestDiagnostics,
     useDiagnosticHistory,
@@ -140,6 +140,9 @@ function DashboardContent({ router, error, setError }: any) {
     const [isExpectingSync, setIsExpectingSync] = useState(false);
     const preTriggerRunAtRef = useRef<string | null>(null);
 
+    // ✅ 1. Use the dedicated status hook instead of manual setInterval
+    const { data: connectionStatus } = useConnectionStatus(selectedConnectionId || '', isExpectingSync);
+
     const currentRunAt = latestDiagnostics?.runAt ? String(latestDiagnostics.runAt) : null;
     const hasNewResults = currentRunAt !== null && currentRunAt !== preTriggerRunAtRef.current;
     const isAuditing = isTriggeringAudit || (isExpectingSync && !hasNewResults);
@@ -164,29 +167,38 @@ function DashboardContent({ router, error, setError }: any) {
 
     const isOnCooldown = cooldownRemaining > 0;
 
+    // ✅ 2. Reactive effect that watches the status hook and releases the button on IDLE or ERROR
     useEffect(() => {
-        if (!isExpectingSync || !selectedConnectionId) return;
+        if (!isExpectingSync || !connectionStatus) return;
 
-        const interval = setInterval(async () => {
-            try {
-                const data = await api.get(`/connections/${selectedConnectionId}/status`);
+        if (connectionStatus.syncStatus === 'ERROR') {
+            setError(connectionStatus.lastSyncMessage || 'The background sync failed. Please try again.');
+            setIsExpectingSync(false);
+            return;
+        }
 
-                if (data?.syncStatus === 'IDLE' && isExpectingSync) {
-                    queryClient.invalidateQueries({ queryKey: ['diagnostics', 'latest', selectedConnectionId] });
-                    queryClient.invalidateQueries({ queryKey: ['diagnostics', 'history', selectedConnectionId] });
-                    setIsExpectingSync(false);
-                    return;
-                }
-            } catch (err) {
-                console.error("Failed to poll connection status", err);
-            }
-
+        if (connectionStatus.syncStatus === 'IDLE') {
+            // Worker finished! Invalidate queries to load fresh results and release the button
             queryClient.invalidateQueries({ queryKey: ['diagnostics', 'latest', selectedConnectionId] });
             queryClient.invalidateQueries({ queryKey: ['diagnostics', 'history', selectedConnectionId] });
-        }, 5000);
+            setIsExpectingSync(false);
+            return;
+        }
+    }, [connectionStatus, isExpectingSync, selectedConnectionId, queryClient, setError]);
 
-        return () => clearInterval(interval);
-    }, [isExpectingSync, selectedConnectionId, queryClient]);
+    // ✅ 3. FAILSAFE: If the audit takes longer than 3 minutes, release the button 
+    // to prevent it from being permanently stuck due to network/rate-limit issues.
+    useEffect(() => {
+        if (!isExpectingSync) return;
+
+        const timeout = setTimeout(() => {
+            console.warn("Audit polling timeout reached. Releasing button.");
+            setIsExpectingSync(false);
+            setError("The audit is taking longer than expected. Please check the diagnostics history or try again.");
+        }, 180000); // 3 minutes
+
+        return () => clearTimeout(timeout);
+    }, [isExpectingSync, setError]);
 
     useEffect(() => {
         if (isExpectingSync && hasNewResults) {
