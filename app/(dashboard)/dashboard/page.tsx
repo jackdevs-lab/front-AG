@@ -37,7 +37,6 @@ export default function DashboardPage() {
         </ErrorBoundary>
     );
 }
-// TEMPORARY DEBUG: Remove this after fixing the issue
 
 function DashboardInner() {
     const router = useRouter();
@@ -48,13 +47,11 @@ function DashboardInner() {
     const { connections } = useSuspenseConnections();
     const [error, setError] = useState<string | null>(null);
 
-    // 1. Detect Paystack URL parameters
     const hasPaymentParams =
         searchParams.has('reference') ||
         searchParams.has('payment') ||
         searchParams.has('trxref');
 
-    // Verify on dashboard mount and refetch if cleanup happened
     useEffect(() => {
         let cancelled = false;
 
@@ -73,10 +70,8 @@ function DashboardInner() {
         return () => {
             cancelled = true;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [refetch]);
 
-    // Validate selectedConnectionId against available connections
     useEffect(() => {
         if (connections.length === 0) {
             if (selectedConnectionId) setSelectedConnectionId(null);
@@ -89,17 +84,12 @@ function DashboardInner() {
         }
     }, [connections, selectedConnectionId, setSelectedConnectionId]);
 
-    // NOTE: The previous useEffect that intercepted payment parameters and immediately 
-    // fired router.replace('/dashboard') has been intentionally removed here. 
-    // The PaymentVerificationModal now handles invalidation and routing.
-
     if (connections.length === 0) {
         return <NoConnectionsView onConnected={refetch} />;
     }
 
     return (
         <>
-            {/* 2. Mount the blocking overlay if returning from Paystack checkout */}
             {hasPaymentParams && selectedConnectionId && (
                 <PaymentVerificationModal connectionId={selectedConnectionId} />
             )}
@@ -112,6 +102,7 @@ function DashboardInner() {
         </>
     );
 }
+
 function NoConnectionsView({ onConnected }: { onConnected: () => void }) {
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8">
@@ -153,16 +144,36 @@ function DashboardContent({ router, error, setError }: any) {
     const hasNewResults = currentRunAt !== null && currentRunAt !== preTriggerRunAtRef.current;
     const isAuditing = isTriggeringAudit || (isExpectingSync && !hasNewResults);
 
+    const [cooldownRemaining, setCooldownRemaining] = useState(0);
+
+    useEffect(() => {
+        if (!activeConnection?.updatedAt) {
+            setCooldownRemaining(0);
+            return;
+        }
+        const calculateRemaining = () => {
+            const lastUpdate = new Date(activeConnection.updatedAt).getTime();
+            const elapsed = Date.now() - lastUpdate;
+            const remaining = Math.max(0, 60 * 1000 - elapsed);
+            setCooldownRemaining(remaining);
+        };
+        calculateRemaining();
+        const interval = setInterval(calculateRemaining, 1000);
+        return () => clearInterval(interval);
+    }, [activeConnection?.updatedAt]);
+
+    const isOnCooldown = cooldownRemaining > 0;
+
     useEffect(() => {
         if (!isExpectingSync || !selectedConnectionId) return;
 
         const interval = setInterval(async () => {
             try {
-                // The api client interceptor already unwraps response.data, so assign directly
                 const data = await api.get(`/connections/${selectedConnectionId}/status`);
 
-                if (data?.syncStatus === 'ERROR') {
-                    setError(data.lastSyncMessage || 'The background sync failed. Please try again.');
+                if (data?.syncStatus === 'IDLE' && isExpectingSync) {
+                    queryClient.invalidateQueries({ queryKey: ['diagnostics', 'latest', selectedConnectionId] });
+                    queryClient.invalidateQueries({ queryKey: ['diagnostics', 'history', selectedConnectionId] });
                     setIsExpectingSync(false);
                     return;
                 }
@@ -175,7 +186,7 @@ function DashboardContent({ router, error, setError }: any) {
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [isExpectingSync, selectedConnectionId, queryClient, setError]);
+    }, [isExpectingSync, selectedConnectionId, queryClient]);
 
     useEffect(() => {
         if (isExpectingSync && hasNewResults) {
@@ -188,10 +199,18 @@ function DashboardContent({ router, error, setError }: any) {
 
     useEffect(() => {
         if (auditError) {
-            const errorMessage = axios.isAxiosError(auditError)
-                ? auditError.response?.data?.message || auditError.message
-                : auditError instanceof Error ? auditError.message : 'Unknown server error';
-            setError(errorMessage);
+            const isCooldown = (auditError as any).status === 429;
+
+            if (isCooldown) {
+                setCooldownRemaining(60 * 1000);
+                setError('Sync is currently on cooldown. Please wait before trying again.');
+            } else {
+                const errorMessage = axios.isAxiosError(auditError)
+                    ? auditError.response?.data?.message || auditError.message
+                    : auditError instanceof Error ? auditError.message : 'Unknown server error';
+                setError(errorMessage);
+            }
+
             setIsExpectingSync(false);
         }
     }, [auditError, setError]);
@@ -201,24 +220,6 @@ function DashboardContent({ router, error, setError }: any) {
             console.error("Diagnostics failed to load", latestError || historyError);
         }
     }, [latestError, historyError]);
-
-    const [cooldownRemaining, setCooldownRemaining] = useState(0);
-    useEffect(() => {
-        if (!activeConnection?.updatedAt) {
-            setCooldownRemaining(0);
-            return;
-        }
-        const calculateRemaining = () => {
-            const lastUpdate = new Date(activeConnection.updatedAt).getTime();
-            const elapsed = Date.now() - lastUpdate;
-            const remaining = Math.max(0, 60 * 1000 - elapsed); // <-- CHANGED TO 60 SECONDS
-            setCooldownRemaining(remaining);
-        };
-        calculateRemaining();
-        const interval = setInterval(calculateRemaining, 1000);
-        return () => clearInterval(interval);
-    }, [activeConnection?.updatedAt]);
-    const isOnCooldown = cooldownRemaining > 0;
 
     const handleRunAudit = () => {
         if (!activeConnection || isOnCooldown) return;
@@ -231,8 +232,8 @@ function DashboardContent({ router, error, setError }: any) {
     const { trend, previousScore } = calculateTrend(history || []);
 
     const isLocked =
-        activeConnection?.subscriptionStatus === 'INACTIVE' || // Check connection status
-        latestDiagnostics?.locked === true || // Check diagnostics API lock flag
+        activeConnection?.subscriptionStatus === 'INACTIVE' ||
+        latestDiagnostics?.locked === true ||
         (!latestDiagnostics && activeConnection?.subscriptionStatus !== 'ACTIVE');
 
     const metrics = useDiagnosticMetrics(latestDiagnostics ?? null);
@@ -240,11 +241,12 @@ function DashboardContent({ router, error, setError }: any) {
 
     return (
         <div className="space-y-8 pb-20 max-w-[1600px] mx-auto">
-            {/* Safely check for 401 on React Query errors to avoid false "Delayed" banners */}
             {(() => {
-                const is401 = (err: any) => err?.response?.status === 401;
+                const is401 = (err: any) => err?.response?.status === 401 || err?.status === 401;
                 const isAuthError = is401(latestError) || is401(historyError);
-                const isDelayError = (latestError || historyError) && !isAuthError;
+
+                const isCurrentlySyncing = isAuditing || activeConnection?.syncStatus === 'SYNCING';
+                const isDelayError = isCurrentlySyncing && (latestError || historyError) && !isAuthError;
 
                 return (
                     <>
@@ -277,7 +279,6 @@ function DashboardContent({ router, error, setError }: any) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <ErrorBoundary>
-                    {/* HealthScoreCard now uses teaser values directly from metrics */}
                     <HealthScoreCard
                         {...({ isLocked } as any)}
                         score={metrics?.healthScore ?? 100}
@@ -307,12 +308,12 @@ function DashboardContent({ router, error, setError }: any) {
 
                 <ErrorBoundary>
                     <SyncStatusCard
-                        {...({ isLocked } as any)} // Pass the isLocked state
+                        {...({ isLocked } as any)}
                         metrics={metrics}
                         latestDiagnostics={latestDiagnostics ?? null}
                         isLoading={isLoading}
                         isAuditing={isAuditing}
-                        onRunAudit={handleRunAudit} // Pass the handler
+                        onRunAudit={handleRunAudit}
                         isOnCooldown={isOnCooldown}
                         cooldownRemaining={cooldownRemaining}
                     />

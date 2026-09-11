@@ -40,7 +40,9 @@ export function useConnections() {
                 return await connectionsApi.triggerSync(id);
             } catch (error: any) {
                 if (error?.response?.status === 429 || error?.status === 429) {
-                    throw new Error('Sync is currently on cooldown. Please try again later.');
+                    const err = new Error(error.response?.data?.message || 'Sync is currently on cooldown. Please try again later.');
+                    (err as any).status = 429; // ✅ Preserve status for the UI to detect
+                    throw err;
                 }
                 throw error;
             }
