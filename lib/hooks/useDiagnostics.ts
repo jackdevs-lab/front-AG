@@ -7,7 +7,6 @@ import { diagnosticsApi } from '@/lib/api/diagnostics';
 import { DiagnosticRunResult, DiagnosticHistory } from '@/types/diagnostic';
 import { config } from '@/lib/config';
 
-// Diagnostics can be heavy, so we give them 90 seconds
 const DIAGNOSTICS_TIMEOUT = 90000;
 
 export function useLatestDiagnostics(connectionId: string) {
@@ -15,12 +14,23 @@ export function useLatestDiagnostics(connectionId: string) {
         queryKey: ['diagnostics', 'latest', connectionId],
         queryFn: async () => {
             try {
-                const response = await diagnosticsApi.getLatest(connectionId, { timeout: DIAGNOSTICS_TIMEOUT });
-                return response.data ?? null;
-            } catch (error: any) {
-                const status = error?.response?.status;
+                // 'response' here is the parsed JSON body: { success: boolean, data: DiagnosticRunResult | null }
+                const response = await diagnosticsApi.getLatest(connectionId, {
+                    timeout: DIAGNOSTICS_TIMEOUT
+                });
 
-                // Handle locked/subscription states gracefully without breaking the UI
+                // If the backend returns 204 No Content, the client might return null/undefined.
+                // If it returns 200 OK but with empty data, response.data will be null.
+                if (!response || !response.data) {
+                    return null;
+                }
+
+                return response.data;
+            } catch (error: any) {
+                // HTTP clients throw errors for 4xx/5xx statuses.
+                // Check both error.response.status (Axios) and error.status (Fetch wrappers)
+                const status = error?.response?.status ?? error?.status;
+
                 if (status === 403 || status === 402) {
                     return (
                         error?.response?.data?.data ?? {
@@ -37,8 +47,9 @@ export function useLatestDiagnostics(connectionId: string) {
         enabled: !!connectionId,
         staleTime: 10000,
         retry: (failureCount, error: any) => {
-            const status = error?.response?.status;
-            // Never retry on subscription or permission blocks
+            const status = error?.response?.status ?? error?.status;
+
+            // Don't retry if the user is locked or needs to upgrade
             if (status === 403 || status === 402) {
                 return false;
             }
@@ -51,8 +62,12 @@ export function useSuspenseLatestDiagnostics(connectionId: string) {
     return useSuspenseQuery<DiagnosticRunResult | null>({
         queryKey: ['diagnostics', 'latest', connectionId],
         queryFn: async () => {
-            const response = await diagnosticsApi.getLatest(connectionId, { timeout: DIAGNOSTICS_TIMEOUT });
-            return response.data ?? null;
+            const response = await diagnosticsApi.getLatest(connectionId, {
+                timeout: DIAGNOSTICS_TIMEOUT
+            });
+
+            // Since 'response' is the JSON body, we just check if 'data' exists
+            return response?.data ?? null;
         },
         staleTime: 10000,
         retry: 1,
@@ -72,21 +87,21 @@ export function useDiagnosticStream(connectionId: string | null) {
         if (!connectionId || !tenantId) return;
 
         const setupEventSource = async () => {
-            // Force Clerk to bypass cache and mint a fresh token
             const token = await getToken({ skipCache: true });
             if (!token) return;
 
             const url = `${config.api.baseUrl}/diagnostics/stream/${connectionId}?token=${token}&tenantId=${tenantId}`;
             const es = new EventSource(url);
 
-            // Keep a ref to the current active instance for cleanup
             eventSourceRef.current = es;
 
             es.onmessage = (event) => {
-                reconnectAttemptsRef.current = 0; // Reset counter on successful message
+                reconnectAttemptsRef.current = 0;
                 try {
                     const data = JSON.parse(event.data);
-                    if (data.type === 'run_completed') {
+
+                    // 4.2 C9: Trigger UI refresh ONLY on run_completed event from analysis queue
+                    if (data.type === 'run_completed' || data.status === 'COMPLETED') {
                         queryClient.invalidateQueries({ queryKey: ['diagnostics', 'latest', connectionId] });
                         queryClient.invalidateQueries({ queryKey: ['diagnostics', 'history', connectionId] });
                         queryClient.invalidateQueries({ queryKey: ['connections'] });
@@ -99,18 +114,16 @@ export function useDiagnosticStream(connectionId: string | null) {
             };
 
             es.onerror = async () => {
-                // Immediately close THIS specific instance to prevent native browser retry
                 es.close();
 
                 if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-                    console.warn('SSE reconnect limit reached. Falling back to standard 5s polling.');
+                    console.warn('SSE reconnect limit reached. Falling back to standard polling.');
                     return;
                 }
 
                 reconnectAttemptsRef.current += 1;
                 console.warn(`SSE connection failed. Reconnecting... (Attempt ${reconnectAttemptsRef.current})`);
 
-                // Clean recursive call avoids scoping/attachment bugs
                 setTimeout(() => {
                     setupEventSource();
                 }, 2000);
@@ -155,7 +168,6 @@ export function useSuspenseDiagnosticHistory(connectionId: string, limit = 30) {
 export function useInvalidateAfterPayment() {
     const queryClient = useQueryClient();
     return (connectionId: string) => {
-        // Apply the exact same synced invalidations post-payment
         queryClient.invalidateQueries({ queryKey: ['diagnostics', 'latest', connectionId] });
         queryClient.invalidateQueries({ queryKey: ['diagnostics', 'history', connectionId] });
         queryClient.invalidateQueries({ queryKey: ['connections'] });
