@@ -1,11 +1,9 @@
 'use client';
 
-import { useMemo, useState, useEffect, useCallback } from 'react';
-import { EntityFilterBar } from '@/components/dashboard/EntityFilterBar';
+import { useMemo, useEffect } from 'react';
 import { IssuesTable } from '@/components/dashboard/IssuesTable';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
-import { DiagnosticRunResult, Issue } from '@/types/diagnostic';
-import { useDebounce } from '@/lib/hooks/useDebounce';
+import { DiagnosticRunResult } from '@/types/diagnostic';
 
 interface DiagnosticFindingsSectionProps {
     isLocked: boolean;
@@ -13,8 +11,6 @@ interface DiagnosticFindingsSectionProps {
     latestDiagnostics: DiagnosticRunResult | null;
     selectedConnectionId: string | null;
 }
-
-type FilterType = string | null;
 
 const SKELETON_ITEMS = Array.from({ length: 5 }, (_, i) => `skeleton-${i}`);
 
@@ -24,34 +20,23 @@ export function DiagnosticFindingsSection({
     latestDiagnostics,
     selectedConnectionId,
 }: DiagnosticFindingsSectionProps) {
-    const [filterType, setFilterType] = useState<FilterType>(null);
-    const debouncedFilterType = useDebounce(filterType, 300);
-
-    const visibleIssues = useMemo<Issue[]>(() => {
-        if (!isLocked && latestDiagnostics && !latestDiagnostics.locked) {
-            return Array.isArray(latestDiagnostics.issues) ? latestDiagnostics.issues : [];
-        }
-        return [];
-    }, [isLocked, latestDiagnostics]);
-
     const issueCountText = useMemo(() => {
-        if (isLocked) {
-            const diagAny = latestDiagnostics as any;
-            const metaTotal = diagAny?.meta?.criticalCount !== undefined
-                ? ((diagAny.meta.criticalCount || 0) + (diagAny.meta.warningCount || 0) + (diagAny.meta.infoCount || 0))
-                : (diagAny?.issueCount || 0);
+        const diagAny = latestDiagnostics as any;
 
-            if (metaTotal > 0) return `${metaTotal} anomalies detected across rules`;
+        if (isLocked) {
+            const metaTotal =
+                (diagAny?.criticalCount ?? 0) +
+                (diagAny?.warningCount ?? 0) +
+                (diagAny?.infoCount ?? 0) ||
+                (diagAny?.issueCount ?? 0);
+
+            if (metaTotal > 0) return `${metaTotal.toLocaleString()} anomalies detected across rules`;
             return 'Subscription required to view findings';
         }
 
-        const displayCount = Array.isArray(visibleIssues) ? visibleIssues.length : 0;
-        return `${displayCount} anomalies detected across rules`;
-    }, [isLocked, visibleIssues, latestDiagnostics]);
-
-    const handleTypeSelect = useCallback((type: FilterType) => {
-        setFilterType(type);
-    }, []);
+        const total = diagAny?.issueCount ?? diagAny?.totalIssues ?? 0;
+        return `${total.toLocaleString()} anomalies detected across rules`;
+    }, [isLocked, latestDiagnostics]);
 
     useEffect(() => {
         if (process.env.NODE_ENV === 'development') {
@@ -64,24 +49,12 @@ export function DiagnosticFindingsSection({
         }
     }, [isLocked, isLoading]);
 
+    const runId =
+        latestDiagnostics && 'id' in latestDiagnostics
+            ? (latestDiagnostics.id as string)
+            : null;
     return (
         <section className="space-y-8" aria-labelledby="audit-findings-title">
-            {/* Render filter bar only when unlocked and we have data */}
-            {!isLocked && visibleIssues.length > 0 && (
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                            Filter by Entity Type
-                        </h2>
-                    </div>
-                    <EntityFilterBar
-                        issues={visibleIssues}
-                        selectedType={filterType}
-                        onTypeSelect={handleTypeSelect}
-                    />
-                </div>
-            )}
-
             <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-zinc-200 pb-3">
                     <h2
@@ -95,11 +68,13 @@ export function DiagnosticFindingsSection({
                     </span>
                 </div>
 
-                <ErrorBoundary fallback={
-                    <div className="p-4 text-center text-rose-600 bg-rose-50/50 rounded-xl text-xs font-medium border border-rose-100">
-                        Failed to load diagnostic findings. Please try again.
-                    </div>
-                }>
+                <ErrorBoundary
+                    fallback={
+                        <div className="p-4 text-center text-rose-600 bg-rose-50/50 rounded-xl text-xs font-medium border border-rose-100">
+                            Failed to load diagnostic findings. Please try again.
+                        </div>
+                    }
+                >
                     {isLoading && !latestDiagnostics ? (
                         <div
                             className="space-y-3 py-2"
@@ -122,24 +97,19 @@ export function DiagnosticFindingsSection({
                     ) : isLocked ? (
                         <IssuesTable
                             locked={true}
-                            connectionId={selectedConnectionId || ""}
-                            filterType={debouncedFilterType}
+                            connectionId={selectedConnectionId || ''}
                         />
+                    ) : runId ? (
+                        <IssuesTable runId={runId} filterType={null} />
                     ) : (
-                        <IssuesTable
-                            issues={visibleIssues}
-                            filterType={debouncedFilterType}
-                        />
+                        <div className="py-24 text-center space-y-1">
+                            <p className="text-sm font-semibold text-zinc-900">No diagnostic run yet</p>
+                            <p className="text-xs text-zinc-500 font-normal">
+                                Run an audit to populate findings.
+                            </p>
+                        </div>
                     )}
                 </ErrorBoundary>
-
-                {/* Empty state handling */}
-                {!isLoading && !isLocked && latestDiagnostics && visibleIssues.length === 0 && (
-                    <div className="py-24 text-center space-y-1">
-                        <p className="text-sm font-semibold text-zinc-900">No diagnostic issues found</p>
-                        <p className="text-xs text-zinc-500 font-normal">All monitored financial parameters are clean.</p>
-                    </div>
-                )}
             </div>
         </section>
     );
