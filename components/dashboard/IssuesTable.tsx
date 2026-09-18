@@ -44,18 +44,54 @@ export function IssuesTable(props: Props) {
     return <UnlockedIssuesTable runId={runId} filterType={filterType} />;
 }
 
+/**
+ * Extracts the `rules` array from whatever shape the API client returns.
+ * Tolerates:
+ *   - Raw Axios: { data: { success, data: { rules } } }
+ *   - Unwrapped once: { success, data: { rules } }
+ *   - Unwrapped twice: { rules }
+ */
+function extractRules(response: any): RuleSummary[] {
+    console.log('[rules] raw response:', response);
+
+    const body = response?.data ?? response;
+    console.log('[rules] body after first unwrap:', body);
+
+    const payload = body?.data ?? body;
+    console.log('[rules] payload after second unwrap:', payload);
+
+    const rules = payload?.rules ?? [];
+    console.log('[rules] extracted rules:', rules);
+
+    return rules as RuleSummary[];
+}
+
 function UnlockedIssuesTable({ runId }: { runId: string | null; filterType: string | null }) {
     const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
 
-    const { data, isLoading, isError } = useQuery({
+    const { data, isLoading, isError, error } = useQuery({
         queryKey: ['diagnostics', 'rules', runId],
         enabled: !!runId,
         queryFn: async () => {
-            const res = await api.get(`/diagnostics/runs/${runId}/rules`);
-            return res.data.data.rules as RuleSummary[];
+            console.log('[rules] fetching for runId:', runId);
+            try {
+                const res = await api.get(`/diagnostics/runs/${runId}/rules`);
+                return extractRules(res);
+            } catch (err) {
+                console.error('[rules] queryFn threw:', err);
+                throw err;
+            }
         },
         staleTime: 30_000,
+        retry: 0,
     });
+
+    // Surface the real error while debugging
+    React.useEffect(() => {
+        if (isError && error) {
+            console.error('[rules] query error:', error);
+        }
+    }, [isError, error]);
 
     if (isLoading) {
         return (
@@ -69,6 +105,11 @@ function UnlockedIssuesTable({ runId }: { runId: string | null; filterType: stri
         return (
             <div className="py-24 text-center text-xs text-rose-600 font-medium">
                 Failed to load rule findings.
+                {error instanceof Error && (
+                    <div className="text-[10px] text-zinc-400 mt-2 font-mono">
+                        {error.message}
+                    </div>
+                )}
             </div>
         );
     }
@@ -170,15 +211,28 @@ function UnlockedIssuesTable({ runId }: { runId: string | null; filterType: stri
 }
 
 function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: string; onClose: () => void }) {
-    const { data, isLoading } = useQuery({
+    const { data, isLoading, isError, error } = useQuery({
         queryKey: ['diagnostics', 'rule-issues', runId, ruleId],
         queryFn: async () => {
-            const res = await api.get(`/diagnostics/runs/${runId}/issues`, {
-                params: { ruleId, limit: 100 },
-            });
-            return res.data.data as { total: number; issues: any[] };
+            console.log('[drilldown] fetching for:', runId, ruleId);
+            try {
+                const res = await api.get(`/diagnostics/runs/${runId}/issues`, {
+                    params: { ruleId, limit: 100 },
+                });
+                console.log('[drilldown] raw response:', res);
+
+                // Same defensive unwrap as above
+                const body = (res as any)?.data ?? res;
+                const payload = body?.data ?? body;
+                console.log('[drilldown] payload:', payload);
+                return payload as { total: number; issues: any[] };
+            } catch (err) {
+                console.error('[drilldown] queryFn threw:', err);
+                throw err;
+            }
         },
         staleTime: 30_000,
+        retry: 0,
     });
 
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
@@ -193,13 +247,15 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
                     <div>
                         <h3 className="text-sm font-semibold">{ruleId}</h3>
                         <p className="text-xs text-zinc-500">
-                            {isLoading ? 'Loading…' : `${data?.total ?? 0} findings`}
+                            {isLoading ? 'Loading…'
+                                : isError ? `Error: ${(error as Error)?.message ?? 'unknown'}`
+                                    : `${data?.total ?? 0} findings`}
                         </p>
                     </div>
                     <button onClick={onClose} className="text-zinc-400 hover:text-zinc-900 text-sm">Close</button>
                 </div>
                 <div className="p-6 space-y-2">
-                    {data?.issues.map((issue) => (
+                    {data?.issues?.map((issue) => (
                         <button
                             key={issue.id}
                             onClick={() => setSelectedIssue(issue as Issue)}
