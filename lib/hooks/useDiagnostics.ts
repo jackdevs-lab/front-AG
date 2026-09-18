@@ -66,7 +66,6 @@ export function useSuspenseLatestDiagnostics(connectionId: string) {
                 timeout: DIAGNOSTICS_TIMEOUT
             });
 
-            // Since 'response' is the JSON body, we just check if 'data' exists
             return response?.data ?? null;
         },
         staleTime: 10000,
