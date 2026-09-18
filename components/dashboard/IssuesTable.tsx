@@ -255,17 +255,35 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
                     <button onClick={onClose} className="text-zinc-400 hover:text-zinc-900 text-sm">Close</button>
                 </div>
                 <div className="p-6 space-y-2">
-                    {data?.issues?.map((issue) => (
-                        <button
+                    {data?.issues?.map((issue: any) => (
+                        <div
                             key={issue.id}
-                            onClick={() => setSelectedIssue(issue as Issue)}
-                            className="w-full text-left p-3 border border-zinc-100 rounded-lg hover:bg-zinc-50"
+                            className="p-3 border border-zinc-100 rounded-lg hover:bg-zinc-50"
                         >
-                            <p className="text-xs font-medium text-zinc-900 line-clamp-2">{issue.message}</p>
-                            <p className="text-[10px] text-zinc-400 mt-1 font-mono">
-                                {issue.entityCount} entities · {issue.severity}
-                            </p>
-                        </button>
+                            <p className="text-xs font-medium text-zinc-900">{issue.message}</p>
+
+                            {issue.entityIds?.length > 0 && (
+                                <p className="text-[10px] text-zinc-400 mt-1 font-mono">
+                                    {issue.entityIds.join(', ')}
+                                </p>
+                            )}
+
+                            <div className="flex items-center justify-between mt-2">
+                                <span className="text-[10px] text-zinc-400 font-mono">
+                                    {issue.severity}
+                                </span>
+                                {issue.deepLink && (
+                                    <a
+                                        href={issue.deepLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded hover:bg-slate-800 transition"
+                                    >
+                                        Open in QuickBooks
+                                    </a>
+                                )}
+                            </div>
+                        </div>
                     ))}
                 </div>
 
