@@ -16,6 +16,9 @@ const SEVERITY_PRIORITY: Record<string, number> = {
     CRITICAL: 3, WARNING: 2, INFO: 1,
 };
 
+const RULES_STALE_MS = 5 * 60_000;      // 5 min — rule summary changes only on new run
+const ISSUES_STALE_MS = 5 * 60_000;     // 5 min — drilldown never changes for a completed run
+
 type RuleSummary = {
     ruleId: string;
     ruleName: string;
@@ -36,34 +39,40 @@ interface LockedProps {
 
 type Props = UnlockedProps | LockedProps;
 
+/**
+ * Never retry 429 (rate limit) or auth failures — retrying makes the
+ * rate-limit death spiral worse. Retry other failures once.
+ */
+function shouldRetry(failureCount: number, error: any): boolean {
+    const status = error?.response?.status ?? error?.status;
+    if (status === 429 || status === 401 || status === 403) return false;
+    return failureCount < 1;
+}
+
+/**
+ * Tolerates response shapes from different `api` client configurations:
+ *   - Raw Axios:      { data: { success, data: { rules } } }
+ *   - Unwrapped once: { success, data: { rules } }
+ *   - Unwrapped twice: { rules }
+ */
+function extractRules(response: any): RuleSummary[] {
+    const body = response?.data ?? response;
+    const payload = body?.data ?? body;
+    return (payload?.rules ?? []) as RuleSummary[];
+}
+
+function extractIssuePage(response: any): { total: number; issues: any[] } {
+    const body = response?.data ?? response;
+    const payload = body?.data ?? body;
+    return payload as { total: number; issues: any[] };
+}
+
 export function IssuesTable(props: Props) {
     if ((props as LockedProps).locked === true) {
         return <LockedIssuesOverlay connectionId={(props as LockedProps).connectionId} />;
     }
     const { runId, filterType } = props as UnlockedProps;
     return <UnlockedIssuesTable runId={runId} filterType={filterType} />;
-}
-
-/**
- * Extracts the `rules` array from whatever shape the API client returns.
- * Tolerates:
- *   - Raw Axios: { data: { success, data: { rules } } }
- *   - Unwrapped once: { success, data: { rules } }
- *   - Unwrapped twice: { rules }
- */
-function extractRules(response: any): RuleSummary[] {
-    console.log('[rules] raw response:', response);
-
-    const body = response?.data ?? response;
-    console.log('[rules] body after first unwrap:', body);
-
-    const payload = body?.data ?? body;
-    console.log('[rules] payload after second unwrap:', payload);
-
-    const rules = payload?.rules ?? [];
-    console.log('[rules] extracted rules:', rules);
-
-    return rules as RuleSummary[];
 }
 
 function UnlockedIssuesTable({ runId }: { runId: string | null; filterType: string | null }) {
@@ -73,25 +82,12 @@ function UnlockedIssuesTable({ runId }: { runId: string | null; filterType: stri
         queryKey: ['diagnostics', 'rules', runId],
         enabled: !!runId,
         queryFn: async () => {
-            console.log('[rules] fetching for runId:', runId);
-            try {
-                const res = await api.get(`/diagnostics/runs/${runId}/rules`);
-                return extractRules(res);
-            } catch (err) {
-                console.error('[rules] queryFn threw:', err);
-                throw err;
-            }
+            const res = await api.get(`/diagnostics/runs/${runId}/rules`);
+            return extractRules(res);
         },
-        staleTime: 30_000,
-        retry: 0,
+        staleTime: RULES_STALE_MS,
+        retry: shouldRetry,
     });
-
-    // Surface the real error while debugging
-    React.useEffect(() => {
-        if (isError && error) {
-            console.error('[rules] query error:', error);
-        }
-    }, [isError, error]);
 
     if (isLoading) {
         return (
@@ -214,25 +210,13 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
     const { data, isLoading, isError, error } = useQuery({
         queryKey: ['diagnostics', 'rule-issues', runId, ruleId],
         queryFn: async () => {
-            console.log('[drilldown] fetching for:', runId, ruleId);
-            try {
-                const res = await api.get(`/diagnostics/runs/${runId}/issues`, {
-                    params: { ruleId, limit: 100 },
-                });
-                console.log('[drilldown] raw response:', res);
-
-                // Same defensive unwrap as above
-                const body = (res as any)?.data ?? res;
-                const payload = body?.data ?? body;
-                console.log('[drilldown] payload:', payload);
-                return payload as { total: number; issues: any[] };
-            } catch (err) {
-                console.error('[drilldown] queryFn threw:', err);
-                throw err;
-            }
+            const res = await api.get(`/diagnostics/runs/${runId}/issues`, {
+                params: { ruleId, limit: 100 },
+            });
+            return extractIssuePage(res);
         },
-        staleTime: 30_000,
-        retry: 0,
+        staleTime: ISSUES_STALE_MS,
+        retry: shouldRetry,
     });
 
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
