@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { HealthScoreCard } from '@/components/dashboard/HealthScoreCard';
 import { DiagnosticFindingsSection } from '@/components/dashboard/DiagnosticFindingsSection';
-import { useConnections, useSuspenseConnections, useConnectionStatus } from '@/lib/hooks/useConnections';
+import { useConnections, useSuspenseConnections } from '@/lib/hooks/useConnections';
 import {
     useLatestDiagnostics,
     useDiagnosticHistory,
@@ -25,6 +25,8 @@ import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import axios from 'axios';
 import { DashboardErrorFallback } from './DashboardErrorFallback';
 import { PaymentVerificationModal } from '@/components/billing/PaymentVerificationModal';
+
+const AUDIT_HARD_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
 export default function DashboardPage() {
     return (
@@ -115,14 +117,25 @@ function NoConnectionsView({ onConnected }: { onConnected: () => void }) {
     );
 }
 
+interface PendingAudit {
+    startedAt: number;
+    previousRunAt: string | null;
+}
+
 function DashboardContent({ router, error, setError }: any) {
     const { activeConnection, selectedConnectionId } = useActiveConnection();
+
+    // Tracks an in-flight audit from click until a new terminal DiagnosticRun lands.
+    const [pendingAudit, setPendingAudit] = useState<PendingAudit | null>(null);
 
     const {
         data: latestDiagnostics,
         isLoading: isLoadingLatest,
         error: latestError
-    } = useLatestDiagnostics(selectedConnectionId || '');
+    } = useLatestDiagnostics(
+        selectedConnectionId || '',
+        { refetchInterval: pendingAudit ? 5000 : false }
+    );
 
     const {
         data: history,
@@ -132,11 +145,61 @@ function DashboardContent({ router, error, setError }: any) {
 
     useDiagnosticStream(selectedConnectionId || null);
 
-    const { runAudit, auditError, isTriggeringAudit } = useConnections();
+    const { runAudit: runAuditRaw, auditError, isTriggeringAudit } = useConnections();
 
-    // ✅ Parent derives auditing state directly from the actual backend status hook
-    const { data: connectionStatus } = useConnectionStatus(selectedConnectionId || '', false);
-    const isAuditing = isTriggeringAudit || connectionStatus?.syncStatus === 'SYNCING';
+    // True from click until the resulting DiagnosticRun reaches a terminal state.
+    const isAuditing = isTriggeringAudit || pendingAudit !== null;
+
+    // Wrap runAudit so we can open the audit window and record the previous run.
+    const handleRunAudit = (
+        id: string,
+        options?: { onError?: (error: any) => void; onSuccess?: () => void }
+    ) => {
+        runAuditRaw(id, {
+            onError: (err: any) => {
+                options?.onError?.(err);
+            },
+            onSuccess: () => {
+                setPendingAudit({
+                    startedAt: Date.now(),
+                    previousRunAt: latestDiagnostics?.runAt
+                        ? String(latestDiagnostics.runAt)
+                        : null,
+                });
+                options?.onSuccess?.();
+            },
+        });
+    };
+
+    // Close the audit window once a new run has reached a terminal status.
+    useEffect(() => {
+        if (!pendingAudit || !latestDiagnostics) return;
+
+        const currentRunAt = latestDiagnostics.runAt
+            ? String(latestDiagnostics.runAt)
+            : null;
+        const status = (latestDiagnostics as any)?.status as string | undefined;
+
+        const hasNewRun =
+            currentRunAt !== null && currentRunAt !== pendingAudit.previousRunAt;
+        const isTerminal =
+            !status || status === 'COMPLETED' || status === 'FAILED';
+
+        if (hasNewRun && isTerminal) {
+            setPendingAudit(null);
+        }
+    }, [pendingAudit, latestDiagnostics]);
+
+    // Hard safety net: never let the audit window stay open indefinitely.
+    useEffect(() => {
+        if (!pendingAudit) return;
+        const remaining = AUDIT_HARD_TIMEOUT_MS - (Date.now() - pendingAudit.startedAt);
+        const timeout = setTimeout(
+            () => setPendingAudit(null),
+            Math.max(0, remaining)
+        );
+        return () => clearTimeout(timeout);
+    }, [pendingAudit]);
 
     // Handle global audit errors
     useEffect(() => {
@@ -238,7 +301,7 @@ function DashboardContent({ router, error, setError }: any) {
                         metrics={metrics}
                         latestDiagnostics={latestDiagnostics ?? null}
                         isLoading={isLoading}
-                        onRunAudit={runAudit}
+                        onRunAudit={handleRunAudit}
                         isLocked={isLocked}
                     />
                 </ErrorBoundary>

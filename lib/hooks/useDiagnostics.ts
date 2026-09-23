@@ -9,26 +9,24 @@ import { config } from '@/lib/config';
 
 const DIAGNOSTICS_TIMEOUT = 90000;
 
-export function useLatestDiagnostics(connectionId: string) {
+export function useLatestDiagnostics(
+    connectionId: string,
+    options?: { refetchInterval?: number | false }
+) {
     return useQuery<DiagnosticRunResult | null>({
         queryKey: ['diagnostics', 'latest', connectionId],
         queryFn: async () => {
             try {
-                // 'response' here is the parsed JSON body: { success: boolean, data: DiagnosticRunResult | null }
                 const response = await diagnosticsApi.getLatest(connectionId, {
                     timeout: DIAGNOSTICS_TIMEOUT
                 });
 
-                // If the backend returns 204 No Content, the client might return null/undefined.
-                // If it returns 200 OK but with empty data, response.data will be null.
                 if (!response || !response.data) {
                     return null;
                 }
 
                 return response.data;
             } catch (error: any) {
-                // HTTP clients throw errors for 4xx/5xx statuses.
-                // Check both error.response.status (Axios) and error.status (Fetch wrappers)
                 const status = error?.response?.status ?? error?.status;
 
                 if (status === 403 || status === 402) {
@@ -46,13 +44,10 @@ export function useLatestDiagnostics(connectionId: string) {
         },
         enabled: !!connectionId,
         staleTime: 10000,
+        refetchInterval: options?.refetchInterval ?? false,
         retry: (failureCount, error: any) => {
             const status = error?.response?.status ?? error?.status;
-
-            // Don't retry if the user is locked or needs to upgrade
-            if (status === 403 || status === 402) {
-                return false;
-            }
+            if (status === 403 || status === 402) return false;
             return failureCount < 1;
         },
     });
