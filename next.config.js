@@ -25,6 +25,7 @@ const nextConfig = {
                             "img-src 'self' data: https:",
                             "font-src 'self' data: https:",
                             "connect-src 'self' https://api-production-f5369.up.railway.app https://*.clerk.accounts.dev https://clerk.auditorgen.com https://api.clerk.com",
+                            "worker-src 'self' blob:",
                             "frame-src 'self' https://*.clerk.accounts.dev https://clerk.auditorgen.com https://challenges.cloudflare.com https://www.youtube.com",
                             "frame-ancestors 'none'",
                             "base-uri 'self'",
