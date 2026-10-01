@@ -68,67 +68,141 @@ export function useSuspenseLatestDiagnostics(connectionId: string) {
     });
 }
 
+const MAX_RECONNECT_ATTEMPTS = 3;
+const RECONNECT_DELAY_MS = 2000;
+
 export function useDiagnosticStream(connectionId: string | null) {
     const queryClient = useQueryClient();
     const { getToken, orgId, userId } = useAuth();
     const tenantId = orgId || userId;
 
-    const eventSourceRef = useRef<EventSource | null>(null);
+    const abortRef = useRef<AbortController | null>(null);
     const reconnectAttemptsRef = useRef(0);
-    const MAX_RECONNECT_ATTEMPTS = 3;
+    const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const unmountedRef = useRef(false);
 
     useEffect(() => {
         if (!connectionId || !tenantId) return;
 
-        const setupEventSource = async () => {
-            const token = await getToken({ skipCache: true });
-            if (!token) return;
+        unmountedRef.current = false;
+        reconnectAttemptsRef.current = 0;
 
-            const url = `${config.api.baseUrl}/diagnostics/stream/${connectionId}?token=${token}&tenantId=${tenantId}`;
-            const es = new EventSource(url);
-
-            eventSourceRef.current = es;
-
-            es.onmessage = (event) => {
-                reconnectAttemptsRef.current = 0;
-                try {
-                    const data = JSON.parse(event.data);
-
-                    // 4.2 C9: Trigger UI refresh ONLY on run_completed event from analysis queue
-                    if (data.type === 'run_completed' || data.status === 'COMPLETED') {
-                        queryClient.invalidateQueries({ queryKey: ['diagnostics', 'latest', connectionId] });
-                        queryClient.invalidateQueries({ queryKey: ['diagnostics', 'history', connectionId] });
-                        queryClient.invalidateQueries({ queryKey: ['connections'] });
-                        queryClient.invalidateQueries({ queryKey: ['connection', connectionId] });
-                        queryClient.invalidateQueries({ queryKey: ['connection-status', connectionId] });
-                    }
-                } catch (err) {
-                    console.error('Failed to parse SSE data', err);
-                }
-            };
-
-            es.onerror = async () => {
-                es.close();
-
-                if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-                    console.warn('SSE reconnect limit reached. Falling back to standard polling.');
-                    return;
-                }
-
-                reconnectAttemptsRef.current += 1;
-                console.warn(`SSE connection failed. Reconnecting... (Attempt ${reconnectAttemptsRef.current})`);
-
-                setTimeout(() => {
-                    setupEventSource();
-                }, 2000);
-            };
+        const invalidate = () => {
+            queryClient.invalidateQueries({ queryKey: ['diagnostics', 'latest', connectionId] });
+            queryClient.invalidateQueries({ queryKey: ['diagnostics', 'history', connectionId] });
+            queryClient.invalidateQueries({ queryKey: ['connections'] });
+            queryClient.invalidateQueries({ queryKey: ['connection', connectionId] });
+            queryClient.invalidateQueries({ queryKey: ['connection-status', connectionId] });
         };
 
-        setupEventSource();
+        const handleEvent = (raw: string) => {
+            try {
+                const data = JSON.parse(raw);
+                reconnectAttemptsRef.current = 0;
+
+                // 4.2 C9: Trigger UI refresh ONLY on run_completed event from analysis queue
+                if (data.type === 'run_completed' || data.status === 'COMPLETED') {
+                    invalidate();
+                }
+            } catch (err) {
+                console.error('Failed to parse SSE data', err);
+            }
+        };
+
+        const scheduleReconnect = () => {
+            if (unmountedRef.current) return;
+            if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+                console.warn('SSE reconnect limit reached. Falling back to standard polling.');
+                return;
+            }
+            reconnectAttemptsRef.current += 1;
+            console.warn(`SSE connection failed. Reconnecting... (Attempt ${reconnectAttemptsRef.current})`);
+            reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS);
+        };
+
+        const connect = async (): Promise<void> => {
+            if (unmountedRef.current) return;
+
+            const token = await getToken({ skipCache: true });
+            if (!token) {
+                console.warn('SSE: no token available, aborting connect');
+                return;
+            }
+
+            const controller = new AbortController();
+            abortRef.current = controller;
+
+            try {
+                const url =
+                    `${config.api.baseUrl}/diagnostics/stream/${connectionId}` +
+                    `?tenantId=${encodeURIComponent(tenantId)}`;
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        Accept: 'text/event-stream',
+                        Authorization: `Bearer ${token}`,
+                        'x-tenant-id': tenantId,
+                    },
+                    signal: controller.signal,
+                    cache: 'no-store',
+                    credentials: 'omit',
+                });
+
+                if (!response.ok || !response.body) {
+                    throw new Error(`SSE failed: ${response.status} ${response.statusText}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+
+                while (!unmountedRef.current) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    // Normalize line endings per SSE spec
+                    buffer = buffer.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+                    let sep: number;
+                    while ((sep = buffer.indexOf('\n\n')) !== -1) {
+                        const block = buffer.slice(0, sep);
+                        buffer = buffer.slice(sep + 2);
+
+                        const dataLines: string[] = [];
+                        for (const line of block.split('\n')) {
+                            if (line.startsWith('data:')) {
+                                dataLines.push(line.slice(5).replace(/^ /, ''));
+                            }
+                        }
+                        if (dataLines.length > 0) {
+                            handleEvent(dataLines.join('\n'));
+                        }
+                    }
+                }
+
+                if (!unmountedRef.current) {
+                    scheduleReconnect();
+                }
+            } catch (err: any) {
+                if (err?.name === 'AbortError') return;
+                console.warn('SSE connection error:', err);
+                scheduleReconnect();
+            }
+        };
+
+        connect();
 
         return () => {
-            if (eventSourceRef.current) {
-                eventSourceRef.current.close();
+            unmountedRef.current = true;
+            if (reconnectTimerRef.current) {
+                clearTimeout(reconnectTimerRef.current);
+                reconnectTimerRef.current = null;
+            }
+            if (abortRef.current) {
+                abortRef.current.abort();
+                abortRef.current = null;
             }
         };
     }, [connectionId, tenantId, queryClient, getToken]);
