@@ -45,8 +45,10 @@ export async function GET(request: NextRequest) {
         const result = await response.json();
         console.log('OAuth Connection Success');
 
-        const redirectUrl = new URL(result.data?.redirectUrl || result.redirectUrl || '/dashboard', request.url);
-        return NextResponse.redirect(redirectUrl);
+        // Force relative path — never trust backend-supplied redirect
+        const redirectPath = result.data?.redirectUrl || result.redirectUrl || '/dashboard';
+        const safePath = redirectPath.startsWith('/') ? redirectPath : '/dashboard';
+        return NextResponse.redirect(new URL(safePath, request.url));
     } catch (error) {
         console.error('OAuth callback exception:', error);
         return NextResponse.redirect(

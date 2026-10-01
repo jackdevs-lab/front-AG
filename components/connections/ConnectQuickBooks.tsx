@@ -23,7 +23,23 @@ export function ConnectQuickBooks({ onConnected }: ConnectQuickBooksProps) {
         try {
             const response = await connectionsApi.getAuthUrl(tenantId);
             if (response.success && response.authUrl) {
-                window.location.href = response.authUrl;
+                try {
+                    const url = new URL(response.authUrl);
+                    // Only allow Intuit/QuickBooks auth URLs
+                    const allowedHosts = [
+                        'appcenter.intuit.com',
+                        'app.sandbox.qbo.intuit.com',
+                        'app.qbo.intuit.com',
+                        'oauth.platform.intuit.com',
+                    ];
+                    if (!allowedHosts.includes(url.hostname)) {
+                        console.error('Blocked redirect to untrusted host:', url.hostname);
+                        return;
+                    }
+                    window.location.href = response.authUrl;
+                } catch {
+                    console.error('Invalid auth URL received');
+                }
             } else {
                 setError('Failed to get connection URL. Please try again.');
             }
