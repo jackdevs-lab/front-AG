@@ -8,6 +8,18 @@ const nextConfig = {
         optimizePackageImports: ['lucide-react'],
     },
     async headers() {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') || '';
+
+        // Build the CSP connect-src list dynamically so the deployed
+        // environment's API host is always allowed.
+        const connectSrc = [
+            "'self'",
+            apiUrl,
+            'https://*.clerk.accounts.dev',
+            'https://clerk.auditorgen.com',
+            'https://api.clerk.com',
+        ].filter(Boolean).join(' ');
+
         return [
             {
                 source: '/:path*',
@@ -24,7 +36,7 @@ const nextConfig = {
                             "style-src 'self' 'unsafe-inline'",
                             "img-src 'self' data: https:",
                             "font-src 'self' data: https:",
-                            "connect-src 'self' https://api-production-f5369.up.railway.app https://*.clerk.accounts.dev https://clerk.auditorgen.com https://api.clerk.com",
+                            `connect-src ${connectSrc}`,
                             "worker-src 'self' blob:",
                             "frame-src 'self' https://*.clerk.accounts.dev https://clerk.auditorgen.com https://challenges.cloudflare.com https://www.youtube.com",
                             "frame-ancestors 'none'",
