@@ -7,6 +7,8 @@ import { AuditDrawer } from '@/components/diagnostics/AuditDrawer';
 import { SubscriptionButton } from '@/components/billing/SubscriptionButton';
 import { api } from '@/lib/api/client';
 import { getRuleInsights } from '@/lib/rules/rule-registry';
+import { getRuleRoadmap } from '@/lib/rules/fixing-roadmap';
+
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
@@ -207,6 +209,9 @@ function UnlockedIssuesTable({ runId }: { runId: string | null; filterType: stri
     );
 }
 
+// Add these imports at the top of IssuesTable.tsx if not already there:
+
+
 function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: string; onClose: () => void }) {
     const { data, isLoading, isError, error } = useQuery({
         queryKey: ['diagnostics', 'rule-issues', runId, ruleId],
@@ -222,62 +227,148 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
 
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
 
+    // Get the roadmap early (we have the ruleId from props)
+    const roadmap = getRuleRoadmap(ruleId);
+    const priorityColor = roadmap.priority === 'CRITICAL'
+        ? 'text-rose-600 bg-rose-50 border-rose-200'
+        : roadmap.priority === 'HIGH'
+            ? 'text-amber-600 bg-amber-50 border-amber-200'
+            : 'text-blue-600 bg-blue-50 border-blue-200';
+
     return (
         <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose}>
             <div
-                className="absolute right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl overflow-y-auto"
+                className="absolute right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="p-6 border-b border-zinc-200 flex items-center justify-between">
+                {/* 1. Fixed Header */}
+                <div className="p-6 border-b border-zinc-200 flex items-center justify-between shrink-0 bg-white">
                     <div>
-                        <h3 className="text-sm font-semibold">{ruleId}</h3>
-                        <p className="text-xs text-zinc-500">
-                            {isLoading ? 'Loading…'
+                        <h3 className="text-sm font-semibold text-zinc-900">{ruleId}</h3>
+                        <p className="text-xs text-zinc-500 mt-1">
+                            {isLoading ? 'Loading findings…'
                                 : isError ? `Error: ${(error as Error)?.message ?? 'unknown'}`
-                                    : `${data?.total ?? 0} findings`}
+                                    : `${data?.total ?? 0} findings detected`}
                         </p>
                     </div>
-                    <button onClick={onClose} className="text-zinc-400 hover:text-zinc-900 text-sm">Close</button>
+                    <button onClick={onClose} className="text-zinc-400 hover:text-zinc-900 text-sm font-medium transition-colors">
+                        Close
+                    </button>
                 </div>
-                <div className="p-6 space-y-2">
-                    {data?.issues?.map((issue: any) => (
-                        <div
-                            key={issue.id}
-                            className="p-3 border border-zinc-100 rounded-lg hover:bg-zinc-50"
-                        >
-                            {(() => {
-                                const insights = getRuleInsights(issue);
-                                return (
-                                    <p className="text-xs font-medium text-zinc-900">
-                                        {insights.isStructured ? insights.summary : issue.message}
-                                    </p>
-                                );
-                            })()}
-                            {issue.entityIds?.length > 0 && (
-                                <p className="text-[10px] text-zinc-400 mt-1 font-mono">
-                                    {issue.entityIds.join(', ')}
-                                </p>
-                            )}
 
-                            <div className="flex items-center justify-between mt-2">
-                                <span className="text-[10px] text-zinc-400 font-mono">
-                                    {issue.severity}
+                {/* 2. Scrollable Content Area */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-zinc-50/30">
+
+                    {/* ── THE FIXING ROADMAP ─── */}
+                    <div className="p-5 rounded-xl border border-zinc-200 bg-white shadow-sm space-y-4">
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${priorityColor}`}>
+                                    {roadmap.priority} Priority
                                 </span>
-                                {issue.deepLink && (
-                                    <a
-                                        href={issue.deepLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded hover:bg-slate-800 transition"
-                                    >
-                                        Open in QuickBooks
-                                    </a>
-                                )}
+                                <h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wide">Why This Matters</h4>
+                            </div>
+                            <p className="text-xs text-zinc-600 leading-relaxed">{roadmap.whyItMatters}</p>
+                        </div>
+
+                        <div className="border-t border-zinc-100 pt-4">
+                            <h4 className="text-xs font-bold text-zinc-900 uppercase tracking-wide mb-3">Recommended Fixing Order</h4>
+                            <div className="space-y-3">
+                                {roadmap.steps.map((step) => (
+                                    <div key={step.step} className="flex gap-3">
+                                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-zinc-900 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                                            {step.step}
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-semibold text-zinc-900">{step.action}</p>
+                                            <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">{step.detail}</p>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    ))}
+                    </div>
+
+                    {/* ─── THE ISSUES LIST ─── */}
+                    <div className="space-y-2">
+                        {data?.issues?.map((issue: any) => {
+                            const insights = getRuleInsights(issue);
+
+                            return (
+                                <div key={issue.id} className="p-4 border border-zinc-200 rounded-lg bg-white hover:border-zinc-300 transition-colors shadow-sm">
+
+                                    {/* Summary */}
+                                    <p className="text-xs font-medium text-zinc-900 mb-3">
+                                        {insights.isStructured ? insights.summary : issue.message}
+                                    </p>
+
+                                    {/* Structured Findings (if available) */}
+                                    {insights.isStructured && insights.findings.length > 0 && (
+                                        <div className="space-y-2 mb-3">
+                                            {insights.findings.map((finding, idx) => (
+                                                <div key={idx} className="p-3 bg-zinc-50/80 border border-zinc-100 rounded-md">
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div>
+                                                            <h5 className="text-[11px] font-bold text-zinc-800">{finding.type}</h5>
+                                                            <p className="text-[11px] text-zinc-600 mt-0.5 font-mono">{finding.description}</p>
+                                                        </div>
+                                                    </div>
+                                                    {finding.urls.length > 0 && (
+                                                        <div className="mt-2 flex flex-wrap gap-2">
+                                                            {finding.urls.map((url, urlIdx) => (
+                                                                <a
+                                                                    key={urlIdx}
+                                                                    href={url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="inline-flex items-center gap-1 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded hover:bg-slate-800 transition"
+                                                                >
+                                                                    Open in QuickBooks
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Recommendation Block */}
+                                    {insights.isStructured && insights.recommendation && (
+                                        <div className="bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r mb-3">
+                                            <p className="text-[11px] text-amber-800 font-bold uppercase tracking-wide mb-1">Recommended Action</p>
+                                            <p className="text-xs text-amber-700 leading-relaxed">{insights.recommendation}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Footer Metadata (Severity, Entity IDs & Deep Link) */}
+                                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-100">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-[10px] text-zinc-400 font-mono uppercase">{issue.severity}</span>
+                                            {issue.entityIds?.length > 0 && (
+                                                <p className="text-[10px] text-zinc-400 font-mono">
+                                                    {issue.entityIds.join(', ')}
+                                                </p>
+                                            )}
+                                        </div>
+                                        {issue.deepLink && (
+                                            <a
+                                                href={issue.deepLink}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded hover:bg-slate-800 transition"
+                                            >
+                                                Open in QuickBooks
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
 
+                {/* 3. Audit Drawer Overlay (Unchanged) */}
                 {selectedIssue && (
                     <AuditDrawer
                         isOpen={!!selectedIssue}
@@ -294,7 +385,6 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
         </div>
     );
 }
-
 function LockedIssuesOverlay({ connectionId }: { connectionId: string }) {
     return (
         <div className="relative bg-transparent overflow-hidden py-4" role="region">
