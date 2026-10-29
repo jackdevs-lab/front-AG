@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
 import { parseMarkdownFindings } from '@/lib/utils/dashboard-helpers';
 import { getToken } from '@clerk/nextjs';
+import { getRuleInsights } from '@/lib/rules/rule-registry';
 
 /**
  * Heuristically derive a concise issue title from the description and type.
@@ -58,14 +59,18 @@ function getRiskLevel(description: string): 'high' | 'medium' {
 interface FindingItemProps {
     id: string;
     type: string;
-    url: string;
+    url?: string;      // Made optional
+    urls?: string[];   // Added to support the new registry output
     description: string;
 }
 
-export function FindingItem({ id, type, url, description }: FindingItemProps) {
+export function FindingItem({ id, type, url, urls, description }: FindingItemProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const title = getIssueTitle(type, description);
     const risk = getRiskLevel(description);
+
+    // Safely derive a single URL from either `url` or the first item in `urls`
+    const primaryUrl = url || (urls && urls.length > 0 ? urls[0] : undefined);
 
     return (
         <div
@@ -130,9 +135,9 @@ export function FindingItem({ id, type, url, description }: FindingItemProps) {
                             Verified Incident
                         </div>
 
-                        {url && url !== '#' && (
+                        {primaryUrl && primaryUrl !== '#' && (
                             <a
-                                href={url}
+                                href={primaryUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] font-medium transition-all shadow-sm active:scale-95 cursor-pointer"
@@ -155,10 +160,19 @@ interface AuditDrawerProps {
     ruleName?: string;
     category?: string;
     message: string;
+    ruleId?: string;
+    entities?: any[];
+    entityCount?: number;
 }
 
-export function AuditDrawer({ isOpen, onClose, ruleName, category, message }: AuditDrawerProps) {
-    const { findings, totalExposure, recommendation } = parseMarkdownFindings(message);
+export function AuditDrawer({ isOpen, onClose, ruleName, category, message, ruleId, entities, entityCount }: AuditDrawerProps) {
+    const mockIssue = { ruleId: ruleId || 'UNKNOWN', message, entities: entities || [], entityCount: entityCount || 0 };
+    const insights = getRuleInsights(mockIssue);
+
+    const { findings, totalExposure, recommendation } = insights.isStructured
+        ? { findings: insights.findings, totalExposure: null, recommendation: insights.recommendation }
+        : parseMarkdownFindings(message);
+
     const [copied, setCopied] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
 

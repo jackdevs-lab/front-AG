@@ -6,6 +6,7 @@ import { Issue, Severity } from '@/types/diagnostic';
 import { AuditDrawer } from '@/components/diagnostics/AuditDrawer';
 import { SubscriptionButton } from '@/components/billing/SubscriptionButton';
 import { api } from '@/lib/api/client';
+import { getRuleInsights } from '@/lib/rules/rule-registry';
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
@@ -244,8 +245,14 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
                             key={issue.id}
                             className="p-3 border border-zinc-100 rounded-lg hover:bg-zinc-50"
                         >
-                            <p className="text-xs font-medium text-zinc-900">{issue.message}</p>
-
+                            {(() => {
+                                const insights = getRuleInsights(issue);
+                                return (
+                                    <p className="text-xs font-medium text-zinc-900">
+                                        {insights.isStructured ? insights.summary : issue.message}
+                                    </p>
+                                );
+                            })()}
                             {issue.entityIds?.length > 0 && (
                                 <p className="text-[10px] text-zinc-400 mt-1 font-mono">
                                     {issue.entityIds.join(', ')}
@@ -278,6 +285,9 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
                         ruleName={selectedIssue.ruleName}
                         category={selectedIssue.severity}
                         message={selectedIssue.message}
+                        ruleId={selectedIssue.ruleId}
+                        entities={selectedIssue.entities}
+                        entityCount={selectedIssue.entityCount}
                     />
                 )}
             </div>

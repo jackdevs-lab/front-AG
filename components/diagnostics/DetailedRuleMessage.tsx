@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { parseMarkdownFindings } from '@/lib/utils/dashboard-helpers';
+import { getRuleInsights } from '@/lib/rules/rule-registry';
 
 interface DetailedRuleMessageProps {
     message: string;
@@ -193,16 +194,18 @@ export function DetailedRuleMessage({
         return () => { document.body.style.overflow = 'unset'; };
     }, [isOpen]);
 
-    const summary = extractSummary(message);
     const hasEntities = Array.isArray(entities) && entities.length > 0;
     const schema = detectSchema(entities);
     const columns = getColumns(schema, entities?.[0]);
     const totalAffected = entityCount ?? (hasEntities ? entities.length : 0);
 
-    // Parse the Markdown message to extract findings and deep links
-    const parsed = parseMarkdownFindings(message);
-    const findings = parsed.findings; // array of { id, type, url, urls, description }
-    const recommendation = parsed.recommendation;
+    // Use registry if ruleId is known, otherwise fallback to old regex parser
+    const mockIssue = { ruleId: ruleId || 'UNKNOWN', message, entities: entities || [], entityCount: entityCount || 0 };
+    const insights = getRuleInsights(mockIssue);
+
+    const summary = insights.isStructured ? insights.summary : extractSummary(message);
+    const findings = insights.isStructured ? insights.findings : parseMarkdownFindings(message).findings;
+    const recommendation = insights.isStructured ? insights.recommendation : parseMarkdownFindings(message).recommendation;
 
     const hasSegments = message.includes(' | ') || message.includes('\n');
     const segments = hasSegments ? message.split(/\n| \| /) : [];
