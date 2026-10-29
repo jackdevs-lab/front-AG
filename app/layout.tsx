@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     title: 'AuditGen | QuickBooks Error Detection & Cleanup',
 
     // ✅ FIX: Meta description (153 characters - perfect sweet spot, highlights the "direct links" value prop)
-    description: 'Help bookkeepers find accounting errors in QuickBooks faster. Detect duplicates, unreconciled transactions, and get direct links to fix them instantly.',
+    description: 'Find accounting errors in QuickBooks faster. Detect duplicates, unreconciled transactions, and get direct links to fix them instantly.',
 
     // ✅ FIX: Canonical URL (Prevents duplicate content issues across URL variants)
     metadataBase: new URL(SITE_URL),
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     // ✅ FIX: Open Graph Tags (For LinkedIn, Facebook, Slack, iMessage rich previews)
     openGraph: {
         title: 'AuditGen | QuickBooks Error Detection & Cleanup',
-        description: 'Help bookkeepers find accounting errors in QuickBooks faster. Detect duplicates, unreconciled transactions, and get direct links to fix them instantly.',
+        description: 'Find accounting errors in QuickBooks faster. Detect duplicates, unreconciled transactions, and get direct links to fix them instantly.',
         url: SITE_URL,
         siteName: 'AuditGen',
         type: 'website',
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     twitter: {
         card: 'summary_large_image',
         title: 'AuditGen | QuickBooks Error Detection & Cleanup',
-        description: 'Help bookkeepers find accounting errors in QuickBooks faster. Detect duplicates, unreconciled transactions, and get direct links to fix them instantly.',
+        description: 'Find accounting errors in QuickBooks faster. Detect duplicates, unreconciled transactions, and get direct links to fix them instantly.',
         images: ['/og-image.png'],
     },
 

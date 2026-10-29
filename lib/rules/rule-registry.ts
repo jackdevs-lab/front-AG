@@ -1,22 +1,56 @@
 // lib/rules/rule-registry.ts
 import { Issue, DiagnosticEntity } from '@/types/diagnostic';
 
-const calculateExposure = (entities: DiagnosticEntity[] = []) => {
-    return entities.reduce((sum, entity) => sum + (Number(entity.amount) || 0), 0);
+// 1. Bulletproof Exposure Calculation (Low-Payload Friendly)
+const calculateExposure = (issue: Partial<Issue>) => {
+    // Check if backend sends a single total number (future-proof, ~15 bytes)
+    if ((issue as any).totalExposure) return Number((issue as any).totalExposure);
+    if ((issue as any).metadata?.exposureAmount) return Number((issue as any).metadata.exposureAmount);
+
+    // Fallback to summing entities if they happen to exist
+    const entities = issue.entities || [];
+    return entities.reduce((sum, entity: any) => {
+        return sum + (Number(entity.amount ?? entity.exposureAmount ?? 0) || 0);
+    }, 0);
 };
 
 const formatCurrency = (amount: number, currency = 'USD') => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
 };
 
-// Helper to generate standardized findings from the entities array
-const generateEntityFindings = (issue: Issue, typeLabel: string) => {
-    return (issue.entities || []).map((entity, idx) => ({
-        id: entity.id || `finding-${idx}`,
-        type: `${typeLabel} ${entity.type || 'Record'}`,
-        description: `Amount: ${formatCurrency(Number(entity.amount) || 0)} | Date: ${entity.date || 'N/A'}`,
-        urls: entity.deepLink ? [entity.deepLink] : (entity.url ? [entity.url] : []),
-    }));
+// 2. Bulletproof Entity Findings Generator
+const generateEntityFindings = (issue: Partial<Issue>, typeLabel: string) => {
+    // If entities array exists and has data, use it
+    if (issue.entities && issue.entities.length > 0) {
+        return issue.entities.map((entity: any, idx) => {
+            const amount = Number(entity.amount ?? entity.exposureAmount ?? 0);
+            const date = entity.date ?? entity.transactionDate ?? 'N/A';
+            const deepLink = entity.deepLink ?? entity.url ?? (issue as any).deepLink;
+
+            return {
+                id: entity.id || `finding-${idx}`,
+                type: `${typeLabel} ${entity.type || 'Record'}`,
+                // Only show amount if it's > 0, otherwise just show the ID and Date
+                description: amount > 0
+                    ? `Amount: ${formatCurrency(amount)} | Date: ${date}`
+                    : `Record ID: ${entity.id} | Date: ${date}`,
+                urls: deepLink ? [deepLink] : [],
+            };
+        });
+    }
+
+    // FALLBACK: If no entities array, use entityIds to at least show meaningful data
+    const entityIds = (issue as any).entityIds || [];
+    if (entityIds.length > 0) {
+        return entityIds.map((id: string, idx: number) => ({
+            id: id,
+            type: `${typeLabel} Record`,
+            description: `Record ID: ${id}`,
+            urls: [],
+        }));
+    }
+
+    return [];
 };
 
 export interface RuleInsights {
@@ -27,14 +61,19 @@ export interface RuleInsights {
 }
 
 // The Registry: Maps active ruleId to a function that generates structured insights
-export const RuleInsightsRegistry: Record<string, (issue: Issue) => RuleInsights> = {
+export const RuleInsightsRegistry: Record<string, (issue: Partial<Issue>) => RuleInsights> = {
     // ─── Hygiene Rules ───
-    'UNAPPLIED_PAYMENTS': (issue) => ({
-        isStructured: true,
-        summary: `Found ${issue.entityCount || issue.entities?.length || 0} unapplied payment(s) totaling ${formatCurrency(calculateExposure(issue.entities))}.`,
-        recommendation: 'Apply these payments to their corresponding open invoices to accurately reflect customer balances.',
-        findings: generateEntityFindings(issue, 'Unapplied'),
-    }),
+    'UNAPPLIED_PAYMENTS': (issue) => {
+        const count = issue.entityCount || issue.entities?.length || 0;
+        const totalAmount = calculateExposure(issue);
+        const amountText = totalAmount > 0 ? ` totaling ${formatCurrency(totalAmount)}` : '';
+        return {
+            isStructured: true,
+            summary: `Found ${count} unapplied payment(s)${amountText}.`,
+            recommendation: 'Apply these payments to their corresponding open invoices to accurately reflect customer balances.',
+            findings: generateEntityFindings(issue, 'Unapplied'),
+        };
+    },
 
     // ─── Balance Rules ───
     'AR_CONTROL_ACCOUNT_MISMATCH': (issue) => ({
@@ -87,12 +126,17 @@ export const RuleInsightsRegistry: Record<string, (issue: Issue) => RuleInsights
         findings: generateEntityFindings(issue, 'Incorrect Deposit'),
     }),
 
-    'DUPLICATE_DEPOSITS': (issue) => ({
-        isStructured: true,
-        summary: `Found ${issue.entityCount || issue.entities?.length || 0} duplicate deposit(s) totaling ${formatCurrency(calculateExposure(issue.entities))}.`,
-        recommendation: 'Review the listed deposits and void or delete the duplicates to prevent double-counting revenue.',
-        findings: generateEntityFindings(issue, 'Duplicate Deposit'),
-    }),
+    'DUPLICATE_DEPOSITS': (issue) => {
+        const count = issue.entityCount || issue.entities?.length || 0;
+        const totalAmount = calculateExposure(issue);
+        const amountText = totalAmount > 0 ? ` totaling ${formatCurrency(totalAmount)}` : '';
+        return {
+            isStructured: true,
+            summary: `Found ${count} duplicate deposit(s)${amountText}.`,
+            recommendation: 'Review the listed deposits and void or delete the duplicates to prevent double-counting revenue.',
+            findings: generateEntityFindings(issue, 'Duplicate Deposit'),
+        };
+    },
 
     'UNDEPOSITED_FUNDS_AGING': (issue) => ({
         isStructured: true,
@@ -109,12 +153,17 @@ export const RuleInsightsRegistry: Record<string, (issue: Issue) => RuleInsights
     }),
 
     // ─── AR Rules ───
-    'DUPLICATE_INVOICES': (issue) => ({
-        isStructured: true,
-        summary: `Detected ${issue.entityCount || issue.entities?.length || 0} duplicate invoice(s) totaling ${formatCurrency(calculateExposure(issue.entities))}.`,
-        recommendation: 'Review the listed invoices and void or delete the duplicates to prevent double-counting revenue.',
-        findings: generateEntityFindings(issue, 'Duplicate Invoice'),
-    }),
+    'DUPLICATE_INVOICES': (issue) => {
+        const count = issue.entityCount || issue.entities?.length || 0;
+        const totalAmount = calculateExposure(issue);
+        const amountText = totalAmount > 0 ? ` totaling ${formatCurrency(totalAmount)}` : '';
+        return {
+            isStructured: true,
+            summary: `Detected ${count} duplicate invoice(s)${amountText}.`,
+            recommendation: 'Review the listed invoices and void or delete the duplicates to prevent double-counting revenue.',
+            findings: generateEntityFindings(issue, 'Duplicate Invoice'),
+        };
+    },
 
     'NEGATIVE_AR_BALANCE': (issue) => ({
         isStructured: true,
@@ -123,12 +172,17 @@ export const RuleInsightsRegistry: Record<string, (issue: Issue) => RuleInsights
         findings: generateEntityFindings(issue, 'Negative AR Balance'),
     }),
 
-    'UNAPPLIED_CREDIT_MEMOS': (issue) => ({
-        isStructured: true,
-        summary: `Detected ${issue.entityCount || issue.entities?.length || 0} unapplied credit memo(s) totaling ${formatCurrency(calculateExposure(issue.entities))}.`,
-        recommendation: 'Apply these credit memos to their corresponding open customer invoices.',
-        findings: generateEntityFindings(issue, 'Unapplied Credit Memo'),
-    }),
+    'UNAPPLIED_CREDIT_MEMOS': (issue) => {
+        const count = issue.entityCount || issue.entities?.length || 0;
+        const totalAmount = calculateExposure(issue);
+        const amountText = totalAmount > 0 ? ` totaling ${formatCurrency(totalAmount)}` : '';
+        return {
+            isStructured: true,
+            summary: `Detected ${count} unapplied credit memo(s)${amountText}.`,
+            recommendation: 'Apply these credit memos to their corresponding open customer invoices.',
+            findings: generateEntityFindings(issue, 'Unapplied Credit Memo'),
+        };
+    },
 
     'PAYMENT_WITHOUT_INVOICE': (issue) => ({
         isStructured: true,
@@ -137,12 +191,17 @@ export const RuleInsightsRegistry: Record<string, (issue: Issue) => RuleInsights
         findings: generateEntityFindings(issue, 'Payment Without Invoice'),
     }),
 
-    'DUPLICATE_PAYMENT': (issue) => ({
-        isStructured: true,
-        summary: `Detected ${issue.entityCount || issue.entities?.length || 0} duplicate customer payment(s) totaling ${formatCurrency(calculateExposure(issue.entities))}.`,
-        recommendation: 'Review the listed payments and refund or reallocate the duplicates to prevent accounting errors.',
-        findings: generateEntityFindings(issue, 'Duplicate Payment'),
-    }),
+    'DUPLICATE_PAYMENT': (issue) => {
+        const count = issue.entityCount || issue.entities?.length || 0;
+        const totalAmount = calculateExposure(issue);
+        const amountText = totalAmount > 0 ? ` totaling ${formatCurrency(totalAmount)}` : '';
+        return {
+            isStructured: true,
+            summary: `Detected ${count} duplicate customer payment(s)${amountText}.`,
+            recommendation: 'Review the listed payments and refund or reallocate the duplicates to prevent accounting errors.',
+            findings: generateEntityFindings(issue, 'Duplicate Payment'),
+        };
+    },
 
     'PAYMENT_DATE_BEFORE_INVOICE': (issue) => ({
         isStructured: true,
@@ -166,12 +225,17 @@ export const RuleInsightsRegistry: Record<string, (issue: Issue) => RuleInsights
         findings: generateEntityFindings(issue, 'Bill Payment Without Bill'),
     }),
 
-    'DUPLICATE_VENDOR_BILLS': (issue) => ({
-        isStructured: true,
-        summary: `Detected ${issue.entityCount || issue.entities?.length || 0} duplicate vendor bill(s) totaling ${formatCurrency(calculateExposure(issue.entities))}.`,
-        recommendation: 'Review the listed bills and void or delete the duplicates to prevent double-counting expenses.',
-        findings: generateEntityFindings(issue, 'Duplicate Vendor Bill'),
-    }),
+    'DUPLICATE_VENDOR_BILLS': (issue) => {
+        const count = issue.entityCount || issue.entities?.length || 0;
+        const totalAmount = calculateExposure(issue);
+        const amountText = totalAmount > 0 ? ` totaling ${formatCurrency(totalAmount)}` : '';
+        return {
+            isStructured: true,
+            summary: `Detected ${count} duplicate vendor bill(s)${amountText}.`,
+            recommendation: 'Review the listed bills and void or delete the duplicates to prevent double-counting expenses.',
+            findings: generateEntityFindings(issue, 'Duplicate Vendor Bill'),
+        };
+    },
 
     'NEGATIVE_AP_BALANCE': (issue) => ({
         isStructured: true,
@@ -180,19 +244,29 @@ export const RuleInsightsRegistry: Record<string, (issue: Issue) => RuleInsights
         findings: generateEntityFindings(issue, 'Negative AP Balance'),
     }),
 
-    'VENDOR_CREDITS_NOT_APPLIED': (issue) => ({
-        isStructured: true,
-        summary: `Detected ${issue.entityCount || issue.entities?.length || 0} unapplied vendor credit(s) totaling ${formatCurrency(calculateExposure(issue.entities))}.`,
-        recommendation: 'Apply these vendor credits to their corresponding open vendor bills.',
-        findings: generateEntityFindings(issue, 'Unapplied Vendor Credit'),
-    }),
+    'VENDOR_CREDITS_NOT_APPLIED': (issue) => {
+        const count = issue.entityCount || issue.entities?.length || 0;
+        const totalAmount = calculateExposure(issue);
+        const amountText = totalAmount > 0 ? ` totaling ${formatCurrency(totalAmount)}` : '';
+        return {
+            isStructured: true,
+            summary: `Detected ${count} unapplied vendor credit(s)${amountText}.`,
+            recommendation: 'Apply these vendor credits to their corresponding open vendor bills.',
+            findings: generateEntityFindings(issue, 'Unapplied Vendor Credit'),
+        };
+    },
 
-    'DUPLICATE_BILL_PAYMENTS': (issue) => ({
-        isStructured: true,
-        summary: `Found ${issue.entityCount || issue.entities?.length || 0} duplicate vendor bill payment(s) totaling ${formatCurrency(calculateExposure(issue.entities))}.`,
-        recommendation: 'Review the listed payments and request a refund or reallocate the duplicates from the vendor.',
-        findings: generateEntityFindings(issue, 'Duplicate Bill Payment'),
-    }),
+    'DUPLICATE_BILL_PAYMENTS': (issue) => {
+        const count = issue.entityCount || issue.entities?.length || 0;
+        const totalAmount = calculateExposure(issue);
+        const amountText = totalAmount > 0 ? ` totaling ${formatCurrency(totalAmount)}` : '';
+        return {
+            isStructured: true,
+            summary: `Found ${count} duplicate vendor bill payment(s)${amountText}.`,
+            recommendation: 'Review the listed payments and request a refund or reallocate the duplicates from the vendor.',
+            findings: generateEntityFindings(issue, 'Duplicate Bill Payment'),
+        };
+    },
 
     'PAYMENT_BEFORE_BILL': (issue) => ({
         isStructured: true,
@@ -205,7 +279,7 @@ export const RuleInsightsRegistry: Record<string, (issue: Issue) => RuleInsights
 // Safe Fallback Wrapper
 export function getRuleInsights(issue: Partial<Issue> & { ruleId: string; message: string }): RuleInsights {
     if (RuleInsightsRegistry[issue.ruleId]) {
-        return RuleInsightsRegistry[issue.ruleId](issue as Issue);
+        return RuleInsightsRegistry[issue.ruleId](issue);
     }
 
     // FALLBACK: Return flag indicating it's not structured, so the component 
