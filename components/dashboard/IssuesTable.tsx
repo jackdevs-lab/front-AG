@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Issue, Severity } from '@/types/diagnostic';
+import { Issue } from '@/types/diagnostic';
 import { AuditDrawer } from '@/components/diagnostics/AuditDrawer';
 import { SubscriptionButton } from '@/components/billing/SubscriptionButton';
 import { api } from '@/lib/api/client';
@@ -14,6 +14,15 @@ import {
 } from '@/components/ui/table';
 import { AlertCircle, ChevronRight, Info, ShieldAlert, FileSearch, Loader2, Lock, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+
+// --- NEW: Helper to format currency safely ---
+function formatCurrency(amount: number | string | null | undefined, currency: string = 'USD'): string {
+    const value = typeof amount === 'string' ? parseFloat(amount) : (amount || 0);
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency.toUpperCase(),
+    }).format(value);
+}
 
 const SEVERITY_PRIORITY: Record<string, number> = {
     CRITICAL: 3, WARNING: 2, INFO: 1,
@@ -28,6 +37,8 @@ type RuleSummary = {
     severity: string;
     issueCount: number;
     entityCount: number;
+    ruleExposureAmount?: number; // --- NEW ---
+    currency?: string;           // --- NEW ---
 };
 
 interface UnlockedProps {
@@ -42,22 +53,12 @@ interface LockedProps {
 
 type Props = UnlockedProps | LockedProps;
 
-/**
- * Never retry 429 (rate limit) or auth failures — retrying makes the
- * rate-limit death spiral worse. Retry other failures once.
- */
 function shouldRetry(failureCount: number, error: any): boolean {
     const status = error?.response?.status ?? error?.status;
     if (status === 429 || status === 401 || status === 403) return false;
     return failureCount < 1;
 }
 
-/**
- * Tolerates response shapes from different `api` client configurations:
- *   - Raw Axios:      { data: { success, data: { rules } } }
- *   - Unwrapped once: { success, data: { rules } }
- *   - Unwrapped twice: { rules }
- */
 function extractRules(response: any): RuleSummary[] {
     const body = response?.data ?? response;
     const payload = body?.data ?? body;
@@ -139,8 +140,10 @@ function UnlockedIssuesTable({ runId }: { runId: string | null; filterType: stri
                 <Table>
                     <TableHeader className="border-b border-zinc-200">
                         <TableRow className="hover:bg-transparent border-none">
-                            <TableHead className="w-[50%] text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4 pl-0">Diagnostic Rule</TableHead>
-                            <TableHead className="w-[20%] text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4">Severity</TableHead>
+                            {/* --- UPDATED: Column widths adjusted for Exposure --- */}
+                            <TableHead className="w-[40%] text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4 pl-0">Diagnostic Rule</TableHead>
+                            <TableHead className="w-[15%] text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4">Severity</TableHead>
+                            <TableHead className="w-[15%] text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4 text-right">Exposure</TableHead>
                             <TableHead className="w-[20%] text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4 text-right">Affected Entities</TableHead>
                             <TableHead className="w-[10%] text-right text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4 pr-0"></TableHead>
                         </TableRow>
@@ -160,7 +163,7 @@ function UnlockedIssuesTable({ runId }: { runId: string | null; filterType: stri
                                     }
                                 }}
                             >
-                                <TableCell className="w-[50%] py-5 pl-0">
+                                <TableCell className="w-[40%] py-5 pl-0">
                                     <div className="flex flex-col gap-0.5">
                                         <span className="text-xs font-semibold text-zinc-900 group-hover:text-zinc-600 transition-colors">{rule.ruleName}</span>
                                         <span className="text-[10px] font-mono font-medium text-zinc-400">
@@ -168,7 +171,7 @@ function UnlockedIssuesTable({ runId }: { runId: string | null; filterType: stri
                                         </span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="w-[20%] py-5">
+                                <TableCell className="w-[15%] py-5">
                                     <div className="flex items-center gap-2">
                                         {rule.severity === 'CRITICAL'
                                             ? <ShieldAlert className="h-3.5 w-3.5 text-rose-500" />
@@ -184,6 +187,12 @@ function UnlockedIssuesTable({ runId }: { runId: string | null; filterType: stri
                                         </span>
                                     </div>
                                 </TableCell>
+
+                                {/* --- NEW: Exposure Column --- */}
+                                <TableCell className="w-[15%] py-5 text-right font-mono text-xs font-bold text-rose-600">
+                                    {formatCurrency(rule.ruleExposureAmount || 0, rule.currency || 'USD')}
+                                </TableCell>
+
                                 <TableCell className="w-[20%] py-5 text-right font-mono text-xs font-semibold text-zinc-700">
                                     {rule.entityCount.toLocaleString()}
                                 </TableCell>
@@ -209,9 +218,6 @@ function UnlockedIssuesTable({ runId }: { runId: string | null; filterType: stri
     );
 }
 
-// Add these imports at the top of IssuesTable.tsx if not already there:
-
-
 function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: string; onClose: () => void }) {
     const { data, isLoading, isError, error } = useQuery({
         queryKey: ['diagnostics', 'rule-issues', runId, ruleId],
@@ -227,7 +233,6 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
 
     const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
 
-    // Get the roadmap early (we have the ruleId from props)
     const roadmap = getRuleRoadmap(ruleId);
     const priorityColor = roadmap.priority === 'CRITICAL'
         ? 'text-rose-600 bg-rose-50 border-rose-200'
@@ -241,7 +246,6 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
                 className="absolute right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* 1. Fixed Header */}
                 <div className="p-6 border-b border-zinc-200 flex items-center justify-between shrink-0 bg-white">
                     <div>
                         <h3 className="text-sm font-semibold text-zinc-900">{ruleId}</h3>
@@ -256,10 +260,7 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
                     </button>
                 </div>
 
-                {/* 2. Scrollable Content Area */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-zinc-50/30">
-
-                    {/* ── THE FIXING ROADMAP ─── */}
                     <div className="p-5 rounded-xl border border-zinc-200 bg-white shadow-sm space-y-4">
                         <div>
                             <div className="flex items-center gap-2 mb-2">
@@ -289,20 +290,16 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
                         </div>
                     </div>
 
-                    {/* ─── THE ISSUES LIST ─── */}
                     <div className="space-y-2">
                         {data?.issues?.map((issue: any) => {
                             const insights = getRuleInsights(issue);
 
                             return (
                                 <div key={issue.id} className="p-4 border border-zinc-200 rounded-lg bg-white hover:border-zinc-300 transition-colors shadow-sm">
-
-                                    {/* Summary */}
                                     <p className="text-xs font-medium text-zinc-900 mb-3">
                                         {insights.isStructured ? insights.summary : issue.message}
                                     </p>
 
-                                    {/* Structured Findings (if available) */}
                                     {insights.isStructured && insights.findings.length > 0 && (
                                         <div className="space-y-2 mb-3">
                                             {insights.findings.map((finding, idx) => (
@@ -333,7 +330,6 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
                                         </div>
                                     )}
 
-                                    {/* Recommendation Block */}
                                     {insights.isStructured && insights.recommendation && (
                                         <div className="bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r mb-3">
                                             <p className="text-[11px] text-amber-800 font-bold uppercase tracking-wide mb-1">Recommended Action</p>
@@ -341,7 +337,7 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
                                         </div>
                                     )}
 
-                                    {/* Footer Metadata (Severity, Entity IDs & Deep Link) */}
+                                    {/* --- UPDATED: Footer Metadata with Exposure Badge --- */}
                                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-100">
                                         <div className="flex flex-col gap-1">
                                             <span className="text-[10px] text-zinc-400 font-mono uppercase">{issue.severity}</span>
@@ -351,16 +347,26 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
                                                 </p>
                                             )}
                                         </div>
-                                        {issue.deepLink && (
-                                            <a
-                                                href={issue.deepLink}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded hover:bg-slate-800 transition"
-                                            >
-                                                Open in QuickBooks
-                                            </a>
-                                        )}
+
+                                        <div className="flex items-center gap-3">
+                                            {/* --- NEW: Financial Exposure Badge --- */}
+                                            {issue.exposureAmount != null && issue.exposureAmount > 0 && (
+                                                <span className="font-mono text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded border border-rose-100 whitespace-nowrap">
+                                                    {formatCurrency(issue.exposureAmount, issue.currency || 'USD')}
+                                                </span>
+                                            )}
+
+                                            {issue.deepLink && (
+                                                <a
+                                                    href={issue.deepLink}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded hover:bg-slate-800 transition"
+                                                >
+                                                    Open in QuickBooks
+                                                </a>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -368,7 +374,6 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
                     </div>
                 </div>
 
-                {/* 3. Audit Drawer Overlay (Unchanged) */}
                 {selectedIssue && (
                     <AuditDrawer
                         isOpen={!!selectedIssue}
@@ -385,6 +390,7 @@ function RuleDrillDown({ runId, ruleId, onClose }: { runId: string; ruleId: stri
         </div>
     );
 }
+
 function LockedIssuesOverlay({ connectionId }: { connectionId: string }) {
     return (
         <div className="relative bg-transparent overflow-hidden py-4" role="region">
@@ -392,8 +398,10 @@ function LockedIssuesOverlay({ connectionId }: { connectionId: string }) {
                 <Table>
                     <TableHeader className="border-b border-zinc-200">
                         <TableRow className="hover:bg-transparent border-none">
-                            <TableHead className="w-[50%] py-4 pl-0" />
-                            <TableHead className="w-[20%] py-4" />
+                            {/* --- UPDATED: Match new column widths for perfect blur alignment --- */}
+                            <TableHead className="w-[40%] py-4 pl-0" />
+                            <TableHead className="w-[15%] py-4" />
+                            <TableHead className="w-[15%] py-4" />
                             <TableHead className="w-[20%] py-4" />
                             <TableHead className="w-[10%] py-4" />
                         </TableRow>
@@ -403,6 +411,7 @@ function LockedIssuesOverlay({ connectionId }: { connectionId: string }) {
                             <TableRow key={i} className="border-b border-zinc-100/80">
                                 <TableCell className="py-6 pl-0"><div className="h-4 w-56 rounded bg-zinc-200 animate-pulse" /></TableCell>
                                 <TableCell><div className="h-4 w-20 rounded bg-zinc-200 animate-pulse" /></TableCell>
+                                <TableCell className="text-right"><div className="h-4 w-24 rounded bg-zinc-200 animate-pulse ml-auto" /></TableCell> {/* NEW */}
                                 <TableCell className="text-right"><div className="h-4 w-8 rounded bg-zinc-200 animate-pulse ml-auto" /></TableCell>
                                 <TableCell className="text-right pr-0"><div className="h-4 w-4 rounded bg-zinc-200 animate-pulse ml-auto" /></TableCell>
                             </TableRow>
