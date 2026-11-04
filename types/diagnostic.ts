@@ -18,6 +18,8 @@ export interface Issue {
     entities?: DiagnosticEntity[];
     isResolved: boolean;
     createdAt: Date;
+    exposureAmount?: number;
+    currency?: string;
 }
 
 export interface ScoreBreakdown {
@@ -39,6 +41,8 @@ export interface DiagnosticCheck {
     message?: string;
     durationMs?: number;
     createdAt: Date;
+    ruleExposureAmount?: number;
+    currency?: string;
 }
 
 export interface DiagnosticRun {
@@ -51,7 +55,9 @@ export interface DiagnosticRun {
     scoreBreakdown: ScoreBreakdown;
     issueCount: number;
     totalEntities?: number;
-    totalExposure?: string;
+    ttotalExposure?: string;
+    currency?: string;
+
     issues: Issue[];
     checks: DiagnosticCheck[];
     message?: string;

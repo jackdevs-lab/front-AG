@@ -8,6 +8,7 @@ interface Metrics {
     isTeaser: boolean;
     totalEntities: number;
     totalExposure?: string | number | null;
+    currency?: string; // --- NEW: Support dynamic currency ---
 }
 
 interface Props {
@@ -16,26 +17,32 @@ interface Props {
     error?: Error | string | null;
 }
 
-function formatCurrency(value: string | number | null | undefined): string {
-    if (value === null || value === undefined) return '0.00';
+/**
+ * Intelligently formats currency. 
+ * - If the value is already a formatted string (e.g., "$1,234.56" or "KES 1,234.56"), it returns it as-is.
+ * - If it's a raw number or numeric string, it formats it using the provided currency code.
+ */
+function formatCurrency(value: string | number | null | undefined, currency: string = 'USD'): string {
+    if (value === null || value === undefined) return '—';
+
+    // If it's already a formatted string containing currency symbols/letters, return it as-is
+    if (typeof value === 'string' && /[^\d.,\s-]/.test(value)) {
+        return value;
+    }
 
     let numericValue: number;
-
     if (typeof value === 'string') {
-        const trimmed = value.trim();
-        if (!trimmed) return '0.00';
-
-        numericValue = Number(trimmed);
-        if (Number.isNaN(numericValue)) {
-            return value;
-        }
+        // Strip any non-numeric characters except dots and minus signs for parsing
+        numericValue = Number(value.replace(/[^0-9.-]/g, ''));
     } else {
         numericValue = value;
     }
 
+    if (Number.isNaN(numericValue)) return '—';
+
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'USD',
+        currency: currency.toUpperCase(),
         minimumFractionDigits: 2
     }).format(numericValue);
 }
@@ -76,7 +83,7 @@ export function ImpactScopeCard({ metrics, isLoading, error }: Props) {
                             "text-3xl font-semibold tracking-tight",
                             isError ? "text-red-600" : "text-slate-900"
                         )}>
-                            {isError || hasNoData ? '—' : (metrics?.totalEntities ?? 0)}
+                            {isError || hasNoData ? '—' : (metrics?.totalEntities ?? 0).toLocaleString()}
                         </span>
                     )}
                     <span className="text-xs text-slate-500">Affected Entities</span>
@@ -92,7 +99,7 @@ export function ImpactScopeCard({ metrics, isLoading, error }: Props) {
                                 "text-sm font-semibold",
                                 isError ? "text-red-600" : "text-slate-900"
                             )}>
-                                {isError ? 'Unavailable' : hasNoData ? '—' : formatCurrency(metrics?.totalExposure)}
+                                {isError ? 'Unavailable' : hasNoData ? '—' : formatCurrency(metrics?.totalExposure, metrics?.currency)}
                             </span>
                         )}
                     </div>
