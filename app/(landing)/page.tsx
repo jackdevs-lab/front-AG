@@ -298,75 +298,17 @@ export default function LandingPage() {
                             </div>
 
                             {/* Dashboard preview */}
+                            {/* Dashboard preview — real product screenshot */}
                             <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_24px_70px_-35px_rgba(0,0,0,0.28)]">
-                                <div className="flex h-12 items-center justify-between border-b border-zinc-200 px-4">
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-2 w-2 rounded-full bg-zinc-300" />
-                                        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Portfolio health</span>
-                                    </div>
-                                    <span className="text-[11px] font-medium text-zinc-400">47 clients</span>
-                                </div>
-
-                                <div className="border-b border-zinc-200 bg-zinc-950 px-5 py-5 text-white sm:px-6">
-                                    <div className="flex items-end justify-between gap-4">
-                                        <div>
-                                            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">Firm overview</p>
-                                            <p className="mt-1 text-2xl font-semibold tracking-[-0.03em]">Client bookkeeping status</p>
-                                        </div>
-                                        <div className="hidden text-right sm:block">
-                                            <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Last scan</p>
-                                            <p className="mt-1 text-xs font-medium text-zinc-300">Today, 09:42</p>
-                                        </div>
-                                    </div>
-                                    <div className="mt-6 grid grid-cols-3 gap-3">
-                                        <div className="border-l border-zinc-700 pl-3">
-                                            <p className="text-xl font-semibold">29</p>
-                                            <p className="mt-1 text-[9px] uppercase tracking-[0.12em] text-zinc-500">Healthy</p>
-                                        </div>
-                                        <div className="border-l border-zinc-700 pl-3">
-                                            <p className="text-xl font-semibold">12</p>
-                                            <p className="mt-1 text-[9px] uppercase tracking-[0.12em] text-zinc-500">Review</p>
-                                        </div>
-                                        <div className="border-l border-zinc-700 pl-3">
-                                            <p className="text-xl font-semibold">6</p>
-                                            <p className="mt-1 text-[9px] uppercase tracking-[0.12em] text-zinc-500">Critical</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="overflow-x-auto">
-                                    <table className="w-full min-w-[560px] text-left">
-                                        <thead className="border-b border-zinc-200 bg-zinc-50">
-                                            <tr className="text-[9px] font-semibold uppercase tracking-[0.13em] text-zinc-400">
-                                                <th className="px-5 py-3 font-semibold">Client</th>
-                                                <th className="px-3 py-3 font-semibold">Health</th>
-                                                <th className="px-3 py-3 font-semibold">Issues</th>
-                                                <th className="px-5 py-3 text-right font-semibold">Exposure</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {clients.map((client) => (
-                                                <tr key={client.name} className="border-b border-zinc-100 last:border-0">
-                                                    <td className="px-5 py-4 text-xs font-semibold text-zinc-800">{client.name}</td>
-                                                    <td className="px-3 py-4">
-                                                        <span className="font-semibold text-zinc-800">{client.health}</span>
-                                                        <span className="ml-1 text-[10px] text-zinc-400">/100</span>
-                                                    </td>
-                                                    <td className="px-3 py-4">
-                                                        <StatusBadge status={client.status} />
-                                                        <span className="ml-2 text-xs text-zinc-500">{client.issues}</span>
-                                                    </td>
-                                                    <td className="px-5 py-4 text-right text-xs font-semibold text-zinc-800">{client.exposure}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div className="flex items-center justify-between border-t border-zinc-200 px-5 py-3.5">
-                                    <span className="text-[10px] font-medium text-zinc-400">47 connected companies</span>
-                                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-zinc-700">
-                                        Open portfolio <ChevronRight className="h-3 w-3" />
-                                    </span>
+                                <div className="relative aspect-[1747/871] w-full bg-zinc-100">
+                                    <Image
+                                        src="/dashboard.png"
+                                        alt="Audit Gen dashboard showing health score, detected issues, impact scope, and the diagnostic audit ledger with per-rule dollar exposure"
+                                        fill
+                                        priority
+                                        sizes="(max-width: 1023px) 100vw, 640px"
+                                        className="object-cover object-top"
+                                    />
                                 </div>
                             </div>
                         </div>
