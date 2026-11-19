@@ -66,12 +66,6 @@ export function ImpactScopeCard({ metrics, isLoading, error }: Props) {
                     {isError ? <AlertTriangle className="h-4 w-4 text-red-500" /> : <Users className="h-4 w-4" />}
                     <h3 className="text-sm font-medium">Impact Scope</h3>
                 </div>
-                {metrics?.isTeaser && (
-                    <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                        <Lock className="h-3 w-3" />
-                        Preview
-                    </span>
-                )}
             </div>
 
             <div className="space-y-4">
