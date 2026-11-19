@@ -183,7 +183,7 @@ export function SyncStatusCard({
                     {isLocked ? "Subscription Required" : formattedTime}
                 </span>
                 <span className="text-xs text-slate-500">
-                    {isLocked ? "Unlock features with an active subscription" : formattedDate}
+                    {isLocked ? "Unlock runs with an active subscription" : formattedDate}
                 </span>
             </div>
 

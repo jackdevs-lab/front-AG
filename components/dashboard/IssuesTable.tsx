@@ -44,11 +44,14 @@ function UnlockedIssuesTable({ issues, filterType, locked, connectionId }: { iss
         );
     }, [issues, filterType]);
 
+    // ✅ UPDATED: Now accumulates totalExposure and currency per rule
     const groupedIssues = useMemo(() => {
         const groups: Record<string, {
             ruleName: string;
             severity: Severity;
             totalEntities: number;
+            totalExposure: number;
+            currency: string;
             latestIssue: Issue;
         }> = {};
 
@@ -58,11 +61,14 @@ function UnlockedIssuesTable({ issues, filterType, locked, connectionId }: { iss
                     ruleName: issue.ruleName,
                     severity: issue.severity,
                     totalEntities: 0,
+                    totalExposure: 0,
+                    currency: issue.currency || 'USD',
                     latestIssue: issue
                 };
             }
 
             groups[issue.ruleId].totalEntities += issue.entityCount;
+            groups[issue.ruleId].totalExposure += (issue.exposureAmount || 0);
 
             const currentPriority = SEVERITY_PRIORITY[issue.severity] || 0;
             const groupPriority = SEVERITY_PRIORITY[groups[issue.ruleId].severity] || 0;
@@ -80,7 +86,6 @@ function UnlockedIssuesTable({ issues, filterType, locked, connectionId }: { iss
         });
     }, [filteredIssues]);
 
-    // CLICK INTERCEPTION: locked -> paywall, unlocked -> drawer
     const handleRowClick = (issue: Issue) => {
         if (locked) {
             setShowPaywall(true);
@@ -120,9 +125,11 @@ function UnlockedIssuesTable({ issues, filterType, locked, connectionId }: { iss
                 <Table>
                     <TableHeader className="border-b border-zinc-200">
                         <TableRow className="hover:bg-transparent border-none">
-                            <TableHead className="w-[50%] text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4 pl-0">Diagnostic Rule</TableHead>
-                            <TableHead className="w-[20%] text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4">Severity</TableHead>
-                            <TableHead className="w-[20%] text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4 text-right">Affected Entities</TableHead>
+                            {/* ✅ UPDATED: Adjusted widths to fit the new Exposure column */}
+                            <TableHead className="w-[40%] text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4 pl-0">Diagnostic Rule</TableHead>
+                            <TableHead className="w-[15%] text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4">Severity</TableHead>
+                            <TableHead className="w-[15%] text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4 text-right">Entities</TableHead>
+                            <TableHead className="w-[20%] text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4 text-right">Exposure</TableHead>
                             <TableHead className="w-[10%] text-right text-[11px] font-semibold uppercase tracking-wider text-zinc-400 py-4 pr-0"></TableHead>
                         </TableRow>
                     </TableHeader>
@@ -142,13 +149,13 @@ function UnlockedIssuesTable({ issues, filterType, locked, connectionId }: { iss
                                     }
                                 }}
                             >
-                                <TableCell className="w-[50%] py-5 pl-0">
+                                <TableCell className="w-[40%] py-5 pl-0">
                                     <div className="flex flex-col gap-0.5">
                                         <span className="text-xs font-semibold text-zinc-900 group-hover:text-zinc-600 transition-colors">{group.ruleName}</span>
                                         <span className="text-[10px] font-mono font-medium text-zinc-400">{ruleId}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="w-[20%] py-5">
+                                <TableCell className="w-[15%] py-5">
                                     <div className="flex items-center gap-2">
                                         {group.severity === 'CRITICAL'
                                             ? <ShieldAlert className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />
@@ -164,9 +171,18 @@ function UnlockedIssuesTable({ issues, filterType, locked, connectionId }: { iss
                                         </span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="w-[20%] py-5 text-right font-mono text-xs font-semibold text-zinc-700">
+                                <TableCell className="w-[15%] py-5 text-right font-mono text-xs font-semibold text-zinc-700">
                                     {group.totalEntities.toLocaleString()}
                                 </TableCell>
+
+                                {/* ✅ NEW: Exposure Amount Column */}
+                                <TableCell className="w-[20%] py-5 text-right font-mono text-xs font-semibold text-rose-600">
+                                    {new Intl.NumberFormat('en-US', {
+                                        style: 'currency',
+                                        currency: group.currency || 'USD'
+                                    }).format(group.totalExposure)}
+                                </TableCell>
+
                                 <TableCell className="w-[10%] py-5 text-right pr-0">
                                     <div className="inline-flex items-center justify-center h-7 w-7 text-zinc-400 group-hover:text-zinc-900 transition-colors ml-auto">
                                         <ChevronRight className="h-4 w-4" aria-hidden="true" />
