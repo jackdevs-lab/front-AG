@@ -10,8 +10,8 @@ export function StructuredData() {
         url: 'https://www.auditorgen.com',
         offers: {
             '@type': 'Offer',
-            price: '39', // ✅ ACTION: Replace with your actual starting price, or '0' for a free tier
-            priceCurrency: '£',
+            price: '49', // ✅ ACTION: Replace with your actual starting price, or '0' for a free tier
+            priceCurrency: '$',
         },
         keywords: 'QuickBooks cleanup, month-end close, reconciliation tool, find duplicate invoices, bookkeeping error detection',
     };
