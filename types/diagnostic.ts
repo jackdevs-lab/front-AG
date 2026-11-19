@@ -18,6 +18,7 @@ export interface Issue {
     entities?: DiagnosticEntity[];
     isResolved: boolean;
     createdAt: Date;
+    // Added for teaser table display
     exposureAmount?: number;
     currency?: string;
 }
@@ -41,8 +42,6 @@ export interface DiagnosticCheck {
     message?: string;
     durationMs?: number;
     createdAt: Date;
-    ruleExposureAmount?: number;
-    currency?: string;
 }
 
 export interface DiagnosticRun {
@@ -55,9 +54,7 @@ export interface DiagnosticRun {
     scoreBreakdown: ScoreBreakdown;
     issueCount: number;
     totalEntities?: number;
-    ttotalExposure?: string;
-    currency?: string;
-
+    totalExposure?: string;
     issues: Issue[];
     checks: DiagnosticCheck[];
     message?: string;
@@ -65,30 +62,23 @@ export interface DiagnosticRun {
 
 /**
  * Returned by GET /diagnostics/latest when subscriptionStatus !== 'ACTIVE'.
- *
- * The server confirms a run completed and exposes AGGREGATE COUNTS ONLY.
- * No issue titles, rule names, entity IDs or remediation text are included.
- * These counts power the teaser KPI cards so locked users see real numbers.
+ * Now includes the 'issues' array as teaser data to populate the findings table.
  */
 export interface LockedDiagnosticRun {
     locked: true;
     runId: string;
     runAt: Date;
     meta: {
-        /** Withheld — shown as null in locked state */
         healthScore: number | null;
-        /** Number of CRITICAL-severity issues detected */
         criticalCount: number;
-        /** Number of WARNING-severity issues detected */
         warningCount: number;
-        /** Number of INFO-severity issues detected */
         infoCount: number;
-        /** Total entity records touched across all issues */
         entitiesAffected: number;
-        /** Total financial exposure (teaser) */
         totalExposure: string;
     };
     message: string;
+    issues: Issue[];
+    checks: DiagnosticCheck[];
 }
 
 /** Union type for the latest diagnostics query result data */
