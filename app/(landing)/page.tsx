@@ -265,51 +265,48 @@ export default function LandingPage() {
             </header>
 
             <main>
-                {/* Hero — simplified */}
+                {/* Hero — centered copy + full-width product shot */}
                 <section id="product" className="border-b border-zinc-200 bg-zinc-50/70">
                     <div className="mx-auto max-w-7xl px-5 pb-20 pt-20 sm:px-6 md:pb-24 md:pt-24 lg:px-8">
-                        <div className="grid items-center gap-14 lg:grid-cols-[0.86fr_1.14fr] lg:gap-16">
-                            <div className="max-w-xl">
-                                <h1 className="text-[42px] font-semibold leading-[1.04] tracking-[-0.045em] text-zinc-950 sm:text-5xl lg:text-[58px]">
-                                    Find bookkeeping errors in your clients&apos; QuickBooks Online files.
-                                </h1>
-                                <p className="mt-6 max-w-lg text-[17px] leading-8 text-zinc-600">
-                                    Audit Gen runs 30+ bookkeeping checks across your client portfolio and shows you exactly which transactions need review — with direct links back to QuickBooks.
-                                </p>
+                        <div className="mx-auto max-w-3xl text-center">
+                            <h1 className="text-[42px] font-semibold leading-[1.04] tracking-[-0.045em] text-zinc-950 sm:text-5xl lg:text-[58px]">
+                                Find bookkeeping errors in your clients&apos; QuickBooks Online files.
+                            </h1>
+                            <p className="mx-auto mt-6 max-w-2xl text-[17px] leading-8 text-zinc-600">
+                                Audit Gen runs 30+ bookkeeping checks across your client portfolio and shows you exactly which transactions need review — with direct links back to QuickBooks.
+                            </p>
 
-                                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                                    <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
-                                        <Button size="lg" className="h-12 rounded-md bg-zinc-950 px-6 text-sm font-medium text-white shadow-none hover:bg-zinc-800">
-                                            Run a free health check <ArrowRight className="ml-2 h-4 w-4" />
-                                        </Button>
-                                    </SignUpButton>
-                                    <Button
-                                        onClick={() => setIsVideoOpen(true)}
-                                        variant="outline"
-                                        size="lg"
-                                        className="h-12 rounded-md border-zinc-300 bg-white px-6 text-sm font-medium text-zinc-900 shadow-none hover:bg-zinc-50"
-                                    >
-                                        <Play className="mr-2 h-4 w-4" /> See it in action
+                            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+                                <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
+                                    <Button size="lg" className="h-12 rounded-md bg-zinc-950 px-6 text-sm font-medium text-white shadow-none hover:bg-zinc-800">
+                                        Run a free health check <ArrowRight className="ml-2 h-4 w-4" />
                                     </Button>
-                                </div>
-                                <p className="mt-4 text-xs text-zinc-500">
-                                    Free plan includes 1 connected company and unlimited checks. No credit card required.
-                                </p>
+                                </SignUpButton>
+                                <Button
+                                    onClick={() => setIsVideoOpen(true)}
+                                    variant="outline"
+                                    size="lg"
+                                    className="h-12 rounded-md border-zinc-300 bg-white px-6 text-sm font-medium text-zinc-900 shadow-none hover:bg-zinc-50"
+                                >
+                                    <Play className="mr-2 h-4 w-4" /> See it in action
+                                </Button>
                             </div>
+                            <p className="mt-4 text-xs text-zinc-500">
+                                Free plan includes 1 connected company and unlimited checks. No credit card required.
+                            </p>
+                        </div>
 
-                            {/* Dashboard preview */}
-                            {/* Dashboard preview — real product screenshot */}
-                            <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_24px_70px_-35px_rgba(0,0,0,0.28)]">
-                                <div className="relative aspect-[1747/871] w-full bg-zinc-100">
-                                    <Image
-                                        src="/dashboard.png"
-                                        alt="Audit Gen dashboard showing health score, detected issues, impact scope, and the diagnostic audit ledger with per-rule dollar exposure"
-                                        fill
-                                        priority
-                                        sizes="(max-width: 1023px) 100vw, 640px"
-                                        className="object-cover object-top"
-                                    />
-                                </div>
+                        {/* Full-width product screenshot — readable at ~1150px wide */}
+                        <div className="mx-auto mt-16 max-w-6xl overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_24px_70px_-35px_rgba(0,0,0,0.28)]">
+                            <div className="relative aspect-[1747/871] w-full bg-zinc-100">
+                                <Image
+                                    src="/dashboard.png"
+                                    alt="Audit Gen dashboard showing health score, detected issues, impact scope, and the diagnostic audit ledger with per-rule dollar exposure"
+                                    fill
+                                    priority
+                                    sizes="(max-width: 768px) 100vw, 1152px"
+                                    className="object-cover object-top"
+                                />
                             </div>
                         </div>
                     </div>
