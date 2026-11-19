@@ -26,6 +26,8 @@ export function DiagnosticFindingsSection({
 }: DiagnosticFindingsSectionProps) {
     const [filterType, setFilterType] = useState<FilterType>(null);
     const debouncedFilterType = useDebounce(filterType, 300);
+    console.log("DIAGNOSTICS DATA:", latestDiagnostics);
+
 
     // Always return the issues array if present, regardless of lock state,
     // so non-subscribers see the real teaser data in the table.
