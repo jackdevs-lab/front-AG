@@ -270,16 +270,16 @@ export default function LandingPage() {
                     <div className="mx-auto max-w-7xl px-5 pb-20 pt-20 sm:px-6 md:pb-24 md:pt-24 lg:px-8">
                         <div className="mx-auto max-w-3xl text-center">
                             <h1 className="text-[42px] font-semibold leading-[1.04] tracking-[-0.045em] text-zinc-950 sm:text-5xl lg:text-[58px]">
-                                Find bookkeeping errors in your clients&apos; QuickBooks Online files.
+                                Know what needs fixing before quoting a cleanup job.
+
                             </h1>
                             <p className="mx-auto mt-6 max-w-2xl text-[17px] leading-8 text-zinc-600">
-                                Audit Gen runs 30+ bookkeeping checks across your client portfolio and shows you exactly which transactions need review — with direct links back to QuickBooks.
-                            </p>
+                                Scan QuickBooks files to find bookkeeping issues, see the affected transactions and estimate the financial exposure, with direct links to the entries that need attention.                            </p>
 
                             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                                 <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
                                     <Button size="lg" className="h-12 rounded-md bg-zinc-950 px-6 text-sm font-medium text-white shadow-none hover:bg-zinc-800">
-                                        Run a free health check <ArrowRight className="ml-2 h-4 w-4" />
+                                        Run a free check <ArrowRight className="ml-2 h-4 w-4" />
                                     </Button>
                                 </SignUpButton>
                                 <Button
