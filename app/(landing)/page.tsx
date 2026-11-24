@@ -300,7 +300,7 @@ export default function LandingPage() {
                         <div className="mx-auto mt-16 max-w-6xl overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-[0_24px_70px_-35px_rgba(0,0,0,0.28)]">
                             <div className="relative aspect-[1747/871] w-full bg-zinc-100">
                                 <Image
-                                    src="/dashboard.png"
+                                    src="/1Dashboard.png"
                                     alt="Audit Gen dashboard showing health score, detected issues, impact scope, and the diagnostic audit ledger with per-rule dollar exposure"
                                     fill
                                     priority
