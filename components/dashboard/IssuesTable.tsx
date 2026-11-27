@@ -301,18 +301,9 @@ function UnlockedIssuesTable({ issues, filterType, locked, connectionId }: { iss
                                 </svg>
                             </button>
 
-                            <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-700 text-white shadow-lg shadow-zinc-900/20 mb-4">
-                                <Lock className="h-5 w-5" aria-hidden="true" />
-                            </div>
 
-                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-semibold uppercase tracking-wider mb-3">
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                                Premium Feature
-                            </div>
 
-                            <h3 id="paywall-title" className="text-lg font-semibold text-zinc-900 tracking-tight">
-                                Unlock Full Entity Detail
-                            </h3>
+
                             <p className="text-xs text-zinc-500 font-normal mt-2 max-w-xs mx-auto leading-relaxed">
                                 See every affected record, exact exposure amounts, and open any entry directly in QuickBooks — all from one workspace.
                             </p>
