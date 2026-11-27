@@ -278,36 +278,90 @@ function UnlockedIssuesTable({ issues, filterType, locked, connectionId }: { iss
             </div>
 
             {showPaywall && locked && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowPaywall(false)}>
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md p-4 animate-in fade-in duration-150"
+                    onClick={() => setShowPaywall(false)}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="paywall-title"
+                >
                     <div
-                        className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 space-y-5 text-center border border-zinc-100"
+                        className="relative bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-zinc-100 animate-in zoom-in-95 duration-200"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="inline-flex p-3 bg-zinc-900 text-white rounded-2xl shadow-xl">
-                            <Lock className="h-5 w-5" aria-hidden="true" />
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="text-base font-semibold text-zinc-900 tracking-tight">
-                                Detailed Findings Restricted
+                        {/* Top gradient banner with icon */}
+                        <div className="relative px-6 pt-8 pb-6 text-center bg-gradient-to-b from-zinc-50 to-white border-b border-zinc-100">
+                            <button
+                                onClick={() => setShowPaywall(false)}
+                                className="absolute top-4 right-4 p-1.5 rounded-full text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                                aria-label="Close"
+                            >
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+
+                            <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-700 text-white shadow-lg shadow-zinc-900/20 mb-4">
+                                <Lock className="h-5 w-5" aria-hidden="true" />
+                            </div>
+
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-semibold uppercase tracking-wider mb-3">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                Premium Feature
+                            </div>
+
+                            <h3 id="paywall-title" className="text-lg font-semibold text-zinc-900 tracking-tight">
+                                Unlock Full Entity Detail
                             </h3>
-                            <p className="text-xs text-zinc-500 font-normal leading-relaxed">
-                                Upgrade your monitoring tier to view impacted entity records, exact exposure amounts, and access remediation workflows.
+                            <p className="text-xs text-zinc-500 font-normal mt-2 max-w-xs mx-auto leading-relaxed">
+                                See every affected record, exact exposure amounts, and open any entry directly in QuickBooks — all from one workspace.
                             </p>
                         </div>
-                        <div className="flex flex-col items-center gap-3 pt-1">
+
+                        {/* Feature list */}
+                        <div className="px-6 py-5 space-y-3">
+                            {[
+                                { title: 'Individual entity findings', desc: 'Every duplicate, orphan, or anomaly listed with ID and amount' },
+                                { title: 'Direct QuickBooks deep links', desc: 'One click from investigation to the actual QBO record' },
+                                { title: 'Exact exposure amounts', desc: 'Per-entity and per-rule totals in your ledger currency' },
+                                { title: 'Remediation workflows', desc: 'Resolve issues without leaving the dashboard' },
+                            ].map((feature) => (
+                                <div key={feature.title} className="flex items-start gap-3">
+                                    <div className="shrink-0 mt-0.5 h-5 w-5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                                        <svg className="h-3 w-3 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-semibold text-zinc-900 leading-tight">
+                                            {feature.title}
+                                        </p>
+                                        <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">
+                                            {feature.desc}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* CTA */}
+                        <div className="px-6 pb-6 pt-2 space-y-3">
                             {connectionId && (
                                 <SubscriptionButton
                                     connectionId={connectionId}
-                                    text="Unlock Executive Report"
-                                    className="w-full h-10 text-xs bg-zinc-900 hover:bg-zinc-800 text-white font-medium rounded-xl shadow-xs transition-all"
+                                    text="Upgrade Plan"
+                                    className="w-full h-11 text-sm bg-zinc-900 hover:bg-zinc-800 text-white font-semibold rounded-xl shadow-sm transition-all active:scale-[0.98]"
                                 />
                             )}
                             <button
                                 onClick={() => setShowPaywall(false)}
-                                className="text-[11px] text-zinc-400 hover:text-zinc-600 font-medium transition-colors"
+                                className="w-full text-[11px] text-zinc-400 hover:text-zinc-700 font-medium transition-colors py-1"
                             >
-                                Close
+                                Maybe later
                             </button>
+                            <p className="text-center text-[10px] text-zinc-400 pt-1">
+                                Cancel anytime · No setup fees
+                            </p>
                         </div>
                     </div>
                 </div>
