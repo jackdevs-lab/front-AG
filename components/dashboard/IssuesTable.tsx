@@ -201,6 +201,9 @@ function UnlockedIssuesTable({ issues, filterType, locked, connectionId }: { iss
                     ruleName={selectedIssue.ruleName}
                     category={selectedIssue.severity}
                     message={selectedIssue.message}
+                    ruleId={selectedIssue.ruleId}           // ✅ ADDED
+                    entities={selectedIssue.entities}       // ✅ ADDED
+                    entityCount={selectedIssue.entityCount} // ✅ ADDED
                 />
             )}
 
