@@ -23,9 +23,6 @@ import { parseMarkdownFindings } from '@/lib/utils/dashboard-helpers';
 import { getToken } from '@clerk/nextjs';
 import { getRuleInsights } from '@/lib/rules/rule-registry';
 
-/**
- * Heuristically derive a concise issue title from the description and type.
- */
 function getIssueTitle(type: string, description: string): string {
     const desc = description.toLowerCase();
     if (desc.includes('missing linked transaction')) return 'Missing Linked Transaction';
@@ -40,9 +37,6 @@ function getIssueTitle(type: string, description: string): string {
     return `${type} Integrity Exception`;
 }
 
-/**
- * Determine risk level based on keywords and dollar amounts.
- */
 function getRiskLevel(description: string): 'high' | 'medium' {
     const desc = description.toLowerCase();
     const exposureMatch = desc.match(/\$([\d,.]+)/);
@@ -59,8 +53,8 @@ function getRiskLevel(description: string): 'high' | 'medium' {
 interface FindingItemProps {
     id: string;
     type: string;
-    url?: string;      // Made optional
-    urls?: string[];   // Added to support the new registry output
+    url?: string;
+    urls?: string[];
     description: string;
 }
 
@@ -68,8 +62,6 @@ export function FindingItem({ id, type, url, urls, description }: FindingItemPro
     const [isExpanded, setIsExpanded] = useState(false);
     const title = getIssueTitle(type, description);
     const risk = getRiskLevel(description);
-
-    // Safely derive a single URL from either `url` or the first item in `urls`
     const primaryUrl = url || (urls && urls.length > 0 ? urls[0] : undefined);
 
     return (
@@ -115,8 +107,7 @@ export function FindingItem({ id, type, url, urls, description }: FindingItemPro
                     <div className="shrink-0 pt-1">
                         {isExpanded
                             ? <ChevronUp className="h-3.5 w-3.5 text-zinc-400 transition-transform" />
-                            : <ChevronDown className="h-3.5 w-3.5 text-zinc-300 transition-transform group-hover:text-zinc-400" />
-                        }
+                            : <ChevronDown className="h-3.5 w-3.5 text-zinc-300 transition-transform group-hover:text-zinc-400" />}
                     </div>
                 </div>
             </div>
@@ -163,29 +154,73 @@ interface AuditDrawerProps {
     ruleId?: string;
     entities?: any[];
     entityCount?: number;
+    // ✅ NEW: rule-level aggregates from IssuesTable (optional for backward compat)
+    exposureAmount?: number;
+    currency?: string;
 }
 
-export function AuditDrawer({ isOpen, onClose, ruleName, category, message, ruleId, entities, entityCount }: AuditDrawerProps) {
-    console.log('🔍 AuditDrawer Props:', { ruleId, ruleName, message, entities, entityCount });
-
-    const mockIssue = { ruleId: ruleId || 'UNKNOWN', message, entities: entities || [], entityCount: entityCount || 0 };
+export function AuditDrawer({
+    isOpen,
+    onClose,
+    ruleName,
+    category,
+    message,
+    ruleId,
+    entities,
+    entityCount,
+    exposureAmount,
+    currency,
+}: AuditDrawerProps) {
+    const mockIssue = {
+        ruleId: ruleId || 'UNKNOWN',
+        message,
+        entities: entities || [],
+        entityCount: entityCount || 0,
+    };
     const insights = getRuleInsights(mockIssue);
-    console.log('📊 AuditDrawer RuleInsights:', insights);
+    const parsed = parseMarkdownFindings(message);
 
-    const { findings, totalExposure, recommendation } = insights.isStructured
-        ? { findings: insights.findings, totalExposure: null, recommendation: insights.recommendation }
-        : parseMarkdownFindings(message);
-    console.log('🧩 AuditDrawer Parsed Output:', {
-        isStructured: insights.isStructured,
+    // ✅ FIX 1: Only trust structured findings when they're actually non-empty.
+    // Otherwise fall back to the markdown parser so `message` content still renders.
+    const hasStructuredFindings = insights.isStructured && insights.findings.length > 0;
+
+    const findings = hasStructuredFindings ? insights.findings : parsed.findings;
+    const recommendation =
+        (hasStructuredFindings ? insights.recommendation : null) ||
+        parsed.recommendation ||
+        null;
+
+    // ✅ FIX 2: Prefer rule-level exposure from props (formatted with currency),
+    // then fall back to whatever the markdown parser extracted.
+    const formattedExposure: string | null =
+        exposureAmount && exposureAmount > 0
+            ? new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: currency || 'USD',
+            }).format(exposureAmount)
+            : parsed.totalExposure;
+
+    // ✅ FIX 3: "Something is wrong" must include entityCount and exposure,
+    // not just the (often-empty) findings array.
+    const affectedEntityCount = entityCount ?? 0;
+    const hasAnomalies =
+        findings.length > 0 || affectedEntityCount > 0 || Boolean(formattedExposure);
+
+    console.log('🔍 AuditDrawer Props:', {
+        ruleId, ruleName, message, entities, entityCount, exposureAmount, currency,
+    });
+    console.log('📊 AuditDrawer RuleInsights:', insights);
+    console.log('🧩 AuditDrawer Resolved Output:', {
+        hasStructuredFindings,
         findingsCount: findings.length,
-        findings,
-        totalExposure,
+        formattedExposure,
         recommendation,
+        affectedEntityCount,
+        hasAnomalies,
     });
 
     const [copied, setCopied] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
     const handleDownloadPDF = async () => {
@@ -196,11 +231,8 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message, rule
             const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
             const response = await fetch(`${baseUrl}/api/reports/pdf`, {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
+                headers: { 'Authorization': `Bearer ${token}` },
             });
-
 
             if (!response.ok) {
                 let errorMessage = `Download failed with status: ${response.status}`;
@@ -222,7 +254,6 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message, rule
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-
         } catch (error: any) {
             console.error('Error downloading PDF:', error);
             alert(`PDF Generation Failed: ${error.message}`);
@@ -234,11 +265,6 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message, rule
         f.id.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         f.type.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
     );
-    console.log('🔎 AuditDrawer Filtered Findings:', {
-        searchQuery: debouncedSearchQuery,
-        filteredCount: filteredFindings.length,
-        filteredFindings,
-    });
 
     const copyRecommendation = () => {
         if (!recommendation) return;
@@ -262,18 +288,18 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message, rule
                         <div className="flex items-center gap-2">
                             <div className={cn(
                                 "w-2 h-2 rounded-full",
-                                totalExposure ? "bg-rose-500 animate-pulse" : "bg-emerald-500"
+                                hasAnomalies ? "bg-rose-500 animate-pulse" : "bg-emerald-500"
                             )} />
                             <span className="text-xs font-semibold text-zinc-900 uppercase">
-                                {totalExposure ? "Integrity Breaches Found" : "System Healthy"}
+                                {hasAnomalies ? "Integrity Breaches Found" : "System Healthy"}
                             </span>
                         </div>
                     </div>
 
-                    {totalExposure && (
+                    {formattedExposure && (
                         <div className="h-8 px-2.5 rounded-lg bg-rose-50 text-rose-600 flex items-center gap-1.5 border border-rose-100 text-xs font-mono font-medium">
                             <TrendingDown className="h-3.5 w-3.5 shrink-0" />
-                            <span>{totalExposure}</span>
+                            <span>{formattedExposure}</span>
                         </div>
                     )}
                 </div>
@@ -306,6 +332,21 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message, rule
                             filteredFindings.map((finding, idx) => (
                                 <FindingItem key={`${finding.id}-${idx}`} {...finding} />
                             ))
+                        ) : hasAnomalies ? (
+                            // ✅ NEW: anomalies exist but per-entity detail isn't available
+                            // (summary-only API payload). Surface the summary instead of
+                            // falsely claiming "No Anomalies Detected".
+                            <div className="py-16 px-4 text-center space-y-2 border-y border-zinc-100">
+                                <p className="text-xs font-semibold text-zinc-900 uppercase">
+                                    {affectedEntityCount > 0
+                                        ? `${affectedEntityCount} ${affectedEntityCount === 1 ? 'Record' : 'Records'} Affected`
+                                        : 'Detailed Records Unavailable'}
+                                </p>
+                                <p className="text-[11px] text-zinc-500 max-w-sm mx-auto">
+                                    {insights.summary ||
+                                        'Detailed entity records are not included in this view.'}
+                                </p>
+                            </div>
                         ) : (
                             <div className="py-16 text-center space-y-1 border-y border-zinc-100">
                                 <p className="text-xs font-semibold text-zinc-900 uppercase">No Anomalies Detected</p>

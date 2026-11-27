@@ -1,14 +1,16 @@
 'use client';
 
 import React from 'react';
-import { Users, TrendingDown, AlertTriangle, Lock } from 'lucide-react';
+import { Users, TrendingDown, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 interface Metrics {
     isTeaser: boolean;
     totalEntities: number;
     totalExposure?: string | number | null;
-    currency?: string; // --- NEW: Support dynamic currency ---
+    currency?: string;
+    // ✅ NEW: exposed by the updated `useDiagnosticMetrics`
+    exposureByCurrency?: Record<string, number>;
 }
 
 interface Props {
@@ -18,38 +20,72 @@ interface Props {
 }
 
 /**
- * Intelligently formats currency. 
- * - If the value is already a formatted string (e.g., "$1,234.56" or "KES 1,234.56"), it returns it as-is.
- * - If it's a raw number or numeric string, it formats it using the provided currency code.
+ * Format a currency value.
+ *
+ * - Already-formatted strings (e.g. "$1,234.56", "KES 1,234.56") are returned as-is.
+ * - Numeric values are formatted with the supplied ISO-4217 currency code.
+ * - If the code is empty/invalid, we render a plain decimal number — no
+ *   fabricated "USD" symbol — so the UI never lies about currency.
+ * - `undefined` keeps the historical USD default (backward compatibility for
+ *   call sites that haven't been migrated yet).
  */
-function formatCurrency(value: string | number | null | undefined, currency: string = 'USD'): string {
+function formatCurrency(
+    value: string | number | null | undefined,
+    currency?: string
+): string {
     if (value === null || value === undefined) return '—';
 
-    // If it's already a formatted string containing currency symbols/letters, return it as-is
+    // Already-formatted string — return verbatim
     if (typeof value === 'string' && /[^\d.,\s-]/.test(value)) {
         return value;
     }
 
-    let numericValue: number;
-    if (typeof value === 'string') {
-        // Strip any non-numeric characters except dots and minus signs for parsing
-        numericValue = Number(value.replace(/[^0-9.-]/g, ''));
-    } else {
-        numericValue = value;
-    }
+    const numericValue = typeof value === 'string'
+        ? Number(value.replace(/[^0-9.-]/g, ''))
+        : value;
 
     if (Number.isNaN(numericValue)) return '—';
 
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency.toUpperCase(),
-        minimumFractionDigits: 2
-    }).format(numericValue);
+    // `undefined` → legacy USD default.  Explicit '' → "currency unknown".
+    const fallbackCode = currency === undefined ? 'USD' : currency;
+    const code = (fallbackCode ?? '').trim().toUpperCase();
+    const isIso = /^[A-Z]{3}$/.test(code);
+
+    if (!isIso) {
+        // Unknown currency — show plain decimal, no symbol
+        return new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(numericValue);
+    }
+
+    try {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: code,
+            minimumFractionDigits: 2,
+        }).format(numericValue);
+    } catch {
+        // Defensive fallback — Intl rejected the code we thought was valid
+        return `${code} ${new Intl.NumberFormat('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(numericValue)}`;
+    }
 }
 
 export function ImpactScopeCard({ metrics, isLoading, error }: Props) {
     const isError = !!error && !isLoading;
     const hasNoData = !metrics && !isLoading && !isError;
+
+    // ✅ NEW: surface mixed-currency situations instead of silently showing
+    //         only the largest bucket as if it were the whole total.
+    const nonZeroBuckets = metrics?.exposureByCurrency
+        ? Object.keys(metrics.exposureByCurrency).filter(
+            (k) => metrics.exposureByCurrency![k] !== 0
+        )
+        : [];
+    const isMixedCurrency = nonZeroBuckets.length > 1;
 
     return (
         <article
@@ -63,7 +99,9 @@ export function ImpactScopeCard({ metrics, isLoading, error }: Props) {
         >
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2 text-slate-600">
-                    {isError ? <AlertTriangle className="h-4 w-4 text-red-500" /> : <Users className="h-4 w-4" />}
+                    {isError
+                        ? <AlertTriangle className="h-4 w-4 text-red-500" />
+                        : <Users className="h-4 w-4" />}
                     <h3 className="text-sm font-medium">Impact Scope</h3>
                 </div>
             </div>
@@ -85,7 +123,17 @@ export function ImpactScopeCard({ metrics, isLoading, error }: Props) {
 
                 <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                     <div className="flex flex-col">
-                        <span className="text-xs text-slate-500 mb-0.5">Estimated Exposure</span>
+                        <span className="text-xs text-slate-500 mb-0.5">
+                            Estimated Exposure
+                            {isMixedCurrency && !isLoading && !isError && !hasNoData && (
+                                <span
+                                    className="ml-1 text-slate-400"
+                                    title="Mixed currencies — value shown is the largest bucket only. Per-currency breakdown available in the ledger."
+                                >
+                                    (partial)
+                                </span>
+                            )}
+                        </span>
                         {isLoading ? (
                             <div className="h-5 w-24 bg-slate-100 rounded" />
                         ) : (
@@ -93,7 +141,11 @@ export function ImpactScopeCard({ metrics, isLoading, error }: Props) {
                                 "text-sm font-semibold",
                                 isError ? "text-red-600" : "text-slate-900"
                             )}>
-                                {isError ? 'Unavailable' : hasNoData ? '—' : formatCurrency(metrics?.totalExposure, metrics?.currency)}
+                                {isError
+                                    ? 'Unavailable'
+                                    : hasNoData
+                                        ? '—'
+                                        : formatCurrency(metrics?.totalExposure, metrics?.currency)}
                             </span>
                         )}
                     </div>
