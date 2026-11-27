@@ -43,37 +43,21 @@ export function ConnectionCard({
     const errorMessage = statusData?.lastSyncMessage || connection.lastSyncMessage;
     const isError = currentStatusFromHook === 'ERROR';
 
-    // --- DEBUGGING USE EFFECT ---
     useEffect(() => {
         const lastUpdateStr = connection.updatedAt;
         const lastUpdate = lastUpdateStr ? new Date(lastUpdateStr).getTime() : 0;
 
-        console.log('[ConnectionCard Debug] Status Check:', {
-            currentStatusFromHook,
-            isAuditRunning,
-            triggerTime,
-            triggerTimeFormatted: triggerTime ? new Date(triggerTime).toISOString() : null,
-            connectionUpdatedAt: lastUpdateStr,
-            connectionUpdatedAtMs: lastUpdate,
-            isTriggeredAndUpdated: triggerTime !== null && lastUpdate >= triggerTime
-        });
-
         if (currentStatusFromHook === 'SYNCING') {
-            console.log('[ConnectionCard Debug] -> Status is SYNCING. Keeping spinner ON.');
             setIsAuditRunning(true);
         } else if (isAuditRunning) {
             if (currentStatusFromHook === 'ERROR') {
-                console.log('[ConnectionCard Debug] -> Status is ERROR. Stopping spinner.');
                 setIsAuditRunning(false);
                 setTriggerTime(null);
             } else if (currentStatusFromHook === 'IDLE' && triggerTime && lastUpdate >= triggerTime) {
-                console.log('[ConnectionCard Debug] -> Status is IDLE and updatedAt >= triggerTime. Sync COMPLETE. Stopping spinner.');
                 setIsAuditRunning(false);
                 setTriggerTime(null);
                 setUiMessage('Sync completed successfully!');
                 setMessageType('success');
-            } else if (currentStatusFromHook === 'IDLE') {
-                console.log('[ConnectionCard Debug] -> Status is IDLE, but updatedAt is NOT >= triggerTime. Waiting for parent to pass updated connection prop...');
             }
         }
     }, [currentStatusFromHook, isAuditRunning, connection.updatedAt, triggerTime]);
@@ -102,14 +86,12 @@ export function ConnectionCard({
     const isDisabled = isStarting || isOnCooldown || isAuditRunning;
 
     const handleRunAudit = () => {
-        console.log('[ConnectionCard Debug] handleRunAudit called');
         if (isOnCooldown) {
             setUiMessage(`Please wait ${formatTime(cooldownRemaining)} before syncing again.`);
             setMessageType('warning');
             return;
         }
         if (isDisabled) {
-            console.log('[ConnectionCard Debug] handleRunAudit blocked: isDisabled is true');
             return;
         }
 
@@ -118,7 +100,6 @@ export function ConnectionCard({
 
         onRunAudit(connection.id, {
             onError: (error: any) => {
-                console.log('[ConnectionCard Debug] onRunAudit onError triggered:', error);
                 setIsStarting(false);
                 setIsAuditRunning(false);
                 setTriggerTime(null);
@@ -132,12 +113,10 @@ export function ConnectionCard({
                 }
             },
             onSuccess: () => {
-                console.log('[ConnectionCard Debug] onRunAudit onSuccess triggered! Setting isAuditRunning=true and capturing triggerTime.');
                 setIsStarting(false);
                 setIsAuditRunning(true);
                 const now = Date.now();
                 setTriggerTime(now);
-                console.log('[ConnectionCard Debug] Captured triggerTime:', now, new Date(now).toISOString());
                 setUiMessage('Sync triggered! Monitoring...');
                 setMessageType('warning');
             }

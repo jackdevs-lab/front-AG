@@ -39,8 +39,6 @@ const SINGLE_FEATURES = [
 ];
 
 const TRUST_SIGNALS = [
-    'SSL-secured via Paystack',
-    'Cancel anytime — no lock-in',
     'Instant access post-payment',
 ];
 
@@ -116,9 +114,7 @@ export default function PricingPage() {
                                     <Building2 className="w-5 h-5 text-zinc-400" />
                                     <h2 className="text-lg font-semibold text-zinc-900">Single Company</h2>
                                 </div>
-                                <span className="inline-flex items-center rounded-full bg-zinc-900 px-2.5 py-0.5 text-xs font-semibold text-white">
-                                    Full detail
-                                </span>
+
                             </div>
 
                             <div className="flex items-baseline gap-2 mb-2">
