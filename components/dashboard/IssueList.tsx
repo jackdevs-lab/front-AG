@@ -15,10 +15,20 @@ interface IssueListProps {
     showActions?: boolean;
 }
 
-/**
- * Defensive date formatter. Handles ISO strings, Date objects, null, undefined,
- * garbage. Never throws. Returns `fallback` when the value can't be parsed.
- */
+/** Unified record shape — normalizes entities AND findings into one visual treatment */
+interface DisplayRecord {
+    key: string;
+    id: string;
+    type: string;
+    amount?: number;
+    date?: string;
+    deepLink?: string;
+    /** Legacy aggregated duplicate groups */
+    legacyKey?: string;
+    legacyCount?: number;
+    legacyNames?: string[];
+}
+
 function formatSafeDate(value: unknown, fallback = '—'): string {
     if (!value) return fallback;
     try {
@@ -28,6 +38,70 @@ function formatSafeDate(value: unknown, fallback = '—'): string {
     } catch {
         return fallback;
     }
+}
+
+/**
+ * Build a unified list of records for one issue.
+ * Priority:
+ *   1. `issue.entities` (backend sent them) → use directly
+ *   2. `getRuleInsights(issue).findings` (structured, entityIds-derived) → convert
+ *   3. `parseMarkdownFindings(issue.message)` (regex parser) → convert
+ *   4. Nothing → empty list
+ *
+ * Result: one uniform shape; the renderer doesn't care where they came from.
+ */
+function buildDisplayRecords(issue: Issue): DisplayRecord[] {
+    const entities: any[] = Array.isArray(issue.entities) ? issue.entities : [];
+
+    if (entities.length > 0) {
+        return entities.map((entity, idx) => {
+            // Legacy aggregated shape: { type, key, count, names }
+            const isLegacy = 'count' in entity || 'names' in entity || 'key' in entity;
+            if (isLegacy) {
+                return {
+                    key: `legacy-${idx}`,
+                    id: entity.key ?? `record-${idx}`,
+                    type: entity.type ?? 'Record',
+                    legacyKey: entity.key,
+                    legacyCount: entity.count,
+                    legacyNames: entity.names,
+                };
+            }
+            // Modern shape: { id, type, amount, date, deepLink, url }
+            return {
+                key: `entity-${entity.id ?? idx}`,
+                id: entity.id ?? `record-${idx}`,
+                type: entity.type ?? 'Record',
+                amount: typeof entity.amount === 'number' ? entity.amount : entity.exposureAmount,
+                date: entity.date ?? entity.transactionDate,
+                deepLink: entity.deepLink ?? entity.url,
+            };
+        });
+    }
+
+    // Fall back to structured insights
+    const insights = getRuleInsights(issue);
+    if (insights.isStructured && insights.findings.length > 0) {
+        return insights.findings.map((f, idx) => ({
+            key: `finding-${f.id ?? idx}`,
+            id: f.id ?? `finding-${idx}`,
+            type: f.type ?? 'Record',
+            deepLink: f.urls?.[0],
+        }));
+    }
+
+    // Fall back to markdown parser
+    const parsed = parseMarkdownFindings(issue.message);
+    if (parsed.findings.length > 0) {
+        return parsed.findings.map((f, idx) => ({
+            key: `parsed-${f.id ?? idx}`,
+            id: f.id ?? `parsed-${idx}`,
+            type: f.type ?? 'Record',
+            deepLink: f.urls?.[0],
+        }));
+    }
+
+    return [];
 }
 
 export function IssueList({
@@ -73,9 +147,8 @@ export function IssueList({
 
             <div className="divide-y divide-zinc-100">
                 {issues.map((issue) => {
-                    // ✅ Only treat entities as "rich" when the backend actually sent a non-empty array
-                    const hasRichEntities =
-                        Array.isArray(issue.entities) && issue.entities.length > 0;
+                    const records = buildDisplayRecords(issue);
+                    const insights = getRuleInsights(issue);
 
                     return (
                         <div
@@ -84,7 +157,7 @@ export function IssueList({
                         >
                             <div className="flex items-start justify-between gap-6">
                                 <div className="space-y-2 flex-1 min-w-0">
-                                    {/* ─────────── Header ─────────── */}
+                                    {/* ─── Header ─── */}
                                     <div className="flex items-center gap-3">
                                         <div className="flex items-center gap-1.5">
                                             {getSeverityIcon(issue.severity)}
@@ -102,100 +175,18 @@ export function IssueList({
                                         </h4>
                                     </div>
 
-                                    {/* ─────────── Body: summary + findings + recommendation ─────────── */}
-                                    {(() => {
-                                        const insights = getRuleInsights(issue);
+                                    {/* ─── Summary (always shown if available) ─── */}
+                                    {insights.isStructured && insights.summary && (
+                                        <p className="text-xs text-zinc-600 mt-1 whitespace-pre-wrap">
+                                            {insights.summary}
+                                        </p>
+                                    )}
 
-                                        // Path 1: structured insights
-                                        if (insights.isStructured) {
-                                            return (
-                                                <div className="space-y-3">
-                                                    <p className="text-xs text-zinc-600 mt-1 whitespace-pre-wrap">
-                                                        {insights.summary}
-                                                    </p>
-
-                                                    {/* Findings — HIDDEN when rich entities are present (avoid duplication) */}
-                                                    {!hasRichEntities && insights.findings.length > 0 && (
-                                                        <div className="space-y-2">
-                                                            {insights.findings.map((finding, idx) => (
-                                                                <div key={idx} className="p-3 bg-zinc-50/60 border border-zinc-100 rounded-xl">
-                                                                    <div className="flex items-start justify-between gap-3">
-                                                                        <div>
-                                                                            <h5 className="text-xs font-bold text-zinc-800">{finding.type}</h5>
-                                                                            <p className="text-xs text-zinc-600 mt-1 whitespace-pre-wrap">{finding.description}</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    {finding.urls.length > 0 && (
-                                                                        <div className="mt-2 flex flex-wrap gap-2">
-                                                                            {finding.urls.map((url, urlIdx) => (
-                                                                                <a key={urlIdx} href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded hover:bg-slate-800 transition">
-                                                                                    Open in QuickBooks
-                                                                                </a>
-                                                                            ))}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-
-                                                    {insights.recommendation && (
-                                                        <div className="bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r">
-                                                            <p className="text-xs text-amber-800 font-medium">Recommended Action:</p>
-                                                            <p className="text-xs text-amber-700 mt-1">{insights.recommendation}</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        }
-
-                                        // Path 2: parsed fallback — HIDDEN when rich entities are present
-                                        if (!hasRichEntities) {
-                                            const parsed = parseMarkdownFindings(issue.message);
-                                            if (parsed.findings.length > 0) {
-                                                return (
-                                                    <div className="space-y-3">
-                                                        {parsed.findings.map((finding, idx) => (
-                                                            <div key={idx} className="p-3 bg-zinc-50/60 border border-zinc-100 rounded-xl">
-                                                                <div className="flex items-start justify-between gap-3">
-                                                                    <div>
-                                                                        <h5 className="text-xs font-bold text-zinc-800">{finding.type}</h5>
-                                                                        <p className="text-xs text-zinc-600 mt-1 whitespace-pre-wrap">{finding.description}</p>
-                                                                    </div>
-                                                                </div>
-                                                                {finding.urls.length > 0 && (
-                                                                    <div className="mt-2 flex flex-wrap gap-2">
-                                                                        {finding.urls.map((url, urlIdx) => (
-                                                                            <a key={urlIdx} href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded hover:bg-slate-800 transition">
-                                                                                Open in QuickBooks {finding.urls.length > 1 ? `(${urlIdx + 1})` : ''}
-                                                                            </a>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                );
-                                            }
-
-                                            // Path 3: raw message fallback
-                                            return (
-                                                <p className="text-xs text-zinc-500 font-normal leading-relaxed max-w-2xl whitespace-pre-wrap">
-                                                    {issue.message}
-                                                </p>
-                                            );
-                                        }
-
-                                        // Rich entities present → no text fallback needed; entity section handles it
-                                        return null;
-                                    })()}
-
-                                    {/* ─────────── Metadata row ─────────── */}
+                                    {/* ─── Metadata row ─── */}
                                     <div className="flex items-center gap-3 text-[11px] font-mono text-zinc-400 pt-1">
                                         <span>
-                                            {issue.entityCount || (Array.isArray(issue.entities) ? issue.entities.length : 0)} affected record(s)
+                                            {issue.entityCount || records.length} affected record(s)
                                         </span>
-                                        {/* ✅ createdAt only renders when present — no crash, no "—" */}
                                         {issue.createdAt && (
                                             <>
                                                 <span>•</span>
@@ -204,85 +195,69 @@ export function IssueList({
                                         )}
                                     </div>
 
-                                    {/* ─────────── Entity breakdown — only if backend sent entities ─────────── */}
-                                    {hasRichEntities && (
+                                    {/* ─── Unified records list — ONE card style, always ─── */}
+                                    {records.length > 0 && (
                                         <div className="mt-4 pt-3 border-t border-zinc-100 space-y-2">
                                             <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
                                                 Affected Records Breakdown
                                             </div>
                                             <div className="grid grid-cols-1 gap-2">
-                                                {issue.entities!.map((entity: any, idx: number) => {
-                                                    // Legacy aggregated shape: { type, key, count, names }
-                                                    const isAggregated =
-                                                        'count' in entity ||
-                                                        'names' in entity ||
-                                                        'key' in entity;
-
-                                                    if (isAggregated) {
-                                                        return (
-                                                            <div
-                                                                key={idx}
-                                                                className="text-xs p-3 rounded-xl bg-zinc-50/60 border border-zinc-100 flex flex-col gap-1.5"
-                                                            >
-                                                                <div className="flex items-center justify-between">
-                                                                    <span className="font-medium text-zinc-800">
-                                                                        {entity.type}: {entity.key}
-                                                                    </span>
-                                                                    <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-zinc-200/60 text-zinc-700">
-                                                                        {entity.count} duplicates
-                                                                    </span>
-                                                                </div>
-                                                                {entity.names && (
-                                                                    <div className="text-[11px] text-zinc-500 italic">
-                                                                        {entity.names.join(', ')}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    }
-
-                                                    // Modern shape: { id, type, amount, date, deepLink, url }
-                                                    const amount = entity.amount ?? entity.exposureAmount;
-                                                    const date = entity.date ?? entity.transactionDate;
-                                                    const link = entity.deepLink ?? entity.url;
-
-                                                    return (
-                                                        <div
-                                                            key={idx}
-                                                            className="text-xs p-3 rounded-xl bg-zinc-50/60 border border-zinc-100 flex flex-col gap-1.5"
-                                                        >
-                                                            <div className="flex items-center justify-between gap-2">
-                                                                <span className="font-medium text-zinc-800 truncate">
-                                                                    {entity.type || 'Record'}: {entity.id}
+                                                {records.map((record) => (
+                                                    <div
+                                                        key={record.key}
+                                                        className="text-xs p-3 rounded-xl bg-zinc-50/60 border border-zinc-100 flex flex-col gap-1.5"
+                                                    >
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="font-medium text-zinc-800 truncate">
+                                                                {record.legacyKey
+                                                                    ? `${record.type}: ${record.legacyKey}`
+                                                                    : `${record.type}: ${record.id}`}
+                                                            </span>
+                                                            {typeof record.legacyCount === 'number' && (
+                                                                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-zinc-200/60 text-zinc-700 shrink-0">
+                                                                    {record.legacyCount} duplicates
                                                                 </span>
-                                                                {typeof amount === 'number' && amount !== 0 && (
-                                                                    <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 border border-rose-100 shrink-0">
-                                                                        {new Intl.NumberFormat('en-US', {
-                                                                            style: 'currency',
-                                                                            currency: issue.currency || 'USD',
-                                                                        }).format(amount)}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            {date && date !== 'N/A' && (
-                                                                <div className="text-[11px] text-zinc-500 font-mono">
-                                                                    {formatSafeDate(date, String(date))}
-                                                                </div>
                                                             )}
-                                                            {link && link !== '#' && (
-                                                                <a
-                                                                    href={link}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-1 mt-1 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded hover:bg-slate-800 transition w-fit"
-                                                                >
-                                                                    Open in QuickBooks
-                                                                </a>
+                                                            {typeof record.amount === 'number' && record.amount !== 0 && (
+                                                                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 border border-rose-100 shrink-0">
+                                                                    {new Intl.NumberFormat('en-US', {
+                                                                        style: 'currency',
+                                                                        currency: issue.currency || 'USD',
+                                                                    }).format(record.amount)}
+                                                                </span>
                                                             )}
                                                         </div>
-                                                    );
-                                                })}
+                                                        {record.legacyNames && record.legacyNames.length > 0 && (
+                                                            <div className="text-[11px] text-zinc-500 italic">
+                                                                {record.legacyNames.join(', ')}
+                                                            </div>
+                                                        )}
+                                                        {record.date && record.date !== 'N/A' && (
+                                                            <div className="text-[11px] text-zinc-500 font-mono">
+                                                                {formatSafeDate(record.date, String(record.date))}
+                                                            </div>
+                                                        )}
+                                                        {record.deepLink && record.deepLink !== '#' && (
+                                                            <a
+                                                                href={record.deepLink}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="inline-flex items-center gap-1 mt-1 px-2 py-1 bg-slate-900 text-white text-[10px] font-bold rounded hover:bg-slate-800 transition w-fit"
+                                                            >
+                                                                Open in QuickBooks
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                ))}
                                             </div>
+                                        </div>
+                                    )}
+
+                                    {/* ─── Recommendation (below records) ─── */}
+                                    {insights.isStructured && insights.recommendation && (
+                                        <div className="mt-3 bg-amber-50 border-l-4 border-amber-400 p-3 rounded-r">
+                                            <p className="text-xs text-amber-800 font-medium">Recommended Action:</p>
+                                            <p className="text-xs text-amber-700 mt-1">{insights.recommendation}</p>
                                         </div>
                                     )}
                                 </div>
