@@ -698,7 +698,7 @@ export default function LandingPage() {
                         <div className="aspect-video w-full bg-black">
                             <iframe
                                 className="h-full w-full"
-                                src="https://www.youtube.com/embed/brZiwEXKi-Y?si=_752soTPb9eo0xOu"
+                                src="https://www.youtube.com/embed/aI7TRlqXCBQ?si=D8euSrXPxyk-Jm86"
                                 title="Audit Gen Demo"
                                 frameBorder="0"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
