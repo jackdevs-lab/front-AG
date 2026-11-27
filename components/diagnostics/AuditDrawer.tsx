@@ -166,12 +166,22 @@ interface AuditDrawerProps {
 }
 
 export function AuditDrawer({ isOpen, onClose, ruleName, category, message, ruleId, entities, entityCount }: AuditDrawerProps) {
+    console.log('🔍 AuditDrawer Props:', { ruleId, ruleName, message, entities, entityCount });
+
     const mockIssue = { ruleId: ruleId || 'UNKNOWN', message, entities: entities || [], entityCount: entityCount || 0 };
     const insights = getRuleInsights(mockIssue);
+    console.log('📊 AuditDrawer RuleInsights:', insights);
 
     const { findings, totalExposure, recommendation } = insights.isStructured
         ? { findings: insights.findings, totalExposure: null, recommendation: insights.recommendation }
         : parseMarkdownFindings(message);
+    console.log('🧩 AuditDrawer Parsed Output:', {
+        isStructured: insights.isStructured,
+        findingsCount: findings.length,
+        findings,
+        totalExposure,
+        recommendation,
+    });
 
     const [copied, setCopied] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -224,6 +234,11 @@ export function AuditDrawer({ isOpen, onClose, ruleName, category, message, rule
         f.id.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         f.type.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
     );
+    console.log('🔎 AuditDrawer Filtered Findings:', {
+        searchQuery: debouncedSearchQuery,
+        filteredCount: filteredFindings.length,
+        filteredFindings,
+    });
 
     const copyRecommendation = () => {
         if (!recommendation) return;
